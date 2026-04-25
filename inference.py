@@ -216,7 +216,6 @@ def run_episode(
     swd_trace: Optional[SwdTraceWriter],
 ) -> tuple[float, int, List[float]]:
     os.environ["CORP_TASK_ID"] = task_id
-    os.environ.setdefault("CORP_STUB_WORKERS", "1")
 
     env = CorpEnvironment()
     rewards: List[float] = []

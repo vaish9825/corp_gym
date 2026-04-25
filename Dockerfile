@@ -15,7 +15,7 @@ COPY server ./server/
 COPY client ./client/
 COPY openenv.yaml README.md inference.py ./
 
-RUN uv pip install --system .
+RUN uv sync --frozen --system
 
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
