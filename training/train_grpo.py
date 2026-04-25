@@ -46,6 +46,38 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+import torch
+
+try:
+    import flash_attn.flash_attn_interface as _fa_mod
+
+    _orig_fa_func = _fa_mod.flash_attn_func
+    _orig_fa_var = getattr(_fa_mod, "flash_attn_varlen_func", None)
+
+    def _fa_func_bf16(q, k, v, *args, **kwargs):
+        if q.dtype not in (torch.bfloat16, torch.float16):
+            q, k, v = q.to(torch.bfloat16), k.to(torch.bfloat16), v.to(torch.bfloat16)
+        return _orig_fa_func(q, k, v, *args, **kwargs)
+
+    def _fa_varlen_bf16(q, k, v, *args, **kwargs):
+        if q.dtype not in (torch.bfloat16, torch.float16):
+            q, k, v = q.to(torch.bfloat16), k.to(torch.bfloat16), v.to(torch.bfloat16)
+        return _orig_fa_var(q, k, v, *args, **kwargs)
+
+    _fa_mod.flash_attn_func = _fa_func_bf16
+    if _orig_fa_var is not None:
+        _fa_mod.flash_attn_varlen_func = _fa_varlen_bf16
+
+    try:
+        import unsloth.utils.attention_dispatch as _ad_mod
+        _ad_mod.flash_attn_func = _fa_func_bf16
+        if _orig_fa_var is not None and hasattr(_ad_mod, "flash_attn_varlen_func"):
+            _ad_mod.flash_attn_varlen_func = _fa_varlen_bf16
+    except Exception:
+        pass
+except ImportError:
+    pass
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -240,18 +272,37 @@ def main() -> None:
 
     tasks = [t.strip() for t in args.tasks.split(",") if t.strip()] or list(DEFAULT_TASKS)
     rows = build_prompt_dataset(args.examples, tasks, args.repeats)
-    dataset = Dataset.from_list(rows)
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model,
         max_seq_length=args.max_prompt_length + args.max_completion_length,
-        dtype=None,
+        dtype=torch.bfloat16,
         load_in_4bit=True,
     )
     if getattr(tokenizer, "pad_token", None) is None and getattr(
         tokenizer, "eos_token", None
     ) is not None:
         tokenizer.pad_token = tokenizer.eos_token
+
+    _filtered_rows: List[Dict[str, Any]] = []
+    _budget = int(args.max_prompt_length * 0.9)
+    _skipped = 0
+    for _row in rows:
+        _ids = tokenizer.apply_chat_template(
+            _row["prompt"], tokenize=True, add_generation_prompt=True
+        )
+        if len(_ids) <= _budget:
+            _filtered_rows.append(_row)
+        else:
+            _skipped += 1
+    print(
+        f"GRPO dataset: kept {len(_filtered_rows)} / {len(rows)} prompts "
+        f"(<= {_budget} tokens); skipped {_skipped} oversized prompts."
+    )
+    rows = _filtered_rows
+    if not rows:
+        raise SystemExit("No prompts remain after length filtering; raise --max-prompt-length.")
+    dataset = Dataset.from_list(rows)
 
     save_steps = args.save_steps
     if save_steps is None:
@@ -270,6 +321,10 @@ def main() -> None:
             use_gradient_checkpointing="unsloth",
             random_state=3407,
         )
+
+    for _p in model.parameters():
+        if _p.requires_grad and _p.dtype == torch.float32:
+            _p.data = _p.data.to(torch.bfloat16)
 
     _gc_kwargs: Dict[str, Any] = {
         "output_dir": args.output,

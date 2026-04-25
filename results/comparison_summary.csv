@@ -1,0 +1,13 @@
+model_stage,task_id,episodes,avg_terminal_reward,avg_total_reward,avg_verifier_pass_rate,success_rate,avg_invalid_action_rate,avg_steps
+baseline,e1_launch_readiness,1,0.59,0.88,1.0,1.0,0.0,2.0
+baseline,h1_acquisition_defence,1,0.256667,0.346667,0.333333,0.0,0.0,2.0
+baseline,m1_budget_reallocation,1,0.198333,0.288333,0.166667,0.0,0.0,2.0
+base,e1_launch_readiness,1,0.91,1.39,1.0,1.0,0.0,3.0
+base,h1_acquisition_defence,1,0.7825,2.6025,0.75,0.0,0.0,9.0
+base,m1_budget_reallocation,1,0.806667,1.766667,0.666667,0.0,0.0,5.0
+sft,e1_launch_readiness,1,0.91,1.58,1.0,1.0,0.0,4.0
+sft,h1_acquisition_defence,1,0.604167,4.144167,0.583333,0.0,0.0,17.0
+sft,m1_budget_reallocation,1,0.943333,2.093333,1.0,1.0,0.0,6.0
+grpo,e1_launch_readiness,1,0.91,1.39,1.0,1.0,0.0,3.0
+grpo,h1_acquisition_defence,1,0.6825,5.6625,0.75,0.0,0.0,23.0
+grpo,m1_budget_reallocation,1,0.943333,2.093333,1.0,1.0,0.0,6.0
