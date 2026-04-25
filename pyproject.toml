@@ -15,6 +15,24 @@ dependencies = [
     "jsonpath-ng",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+plots = [
+    "matplotlib",
+]
+training = [
+    "accelerate",
+    "bitsandbytes",
+    "datasets",
+    "peft",
+    "torch",
+    "transformers",
+    "trl",
+    "unsloth",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

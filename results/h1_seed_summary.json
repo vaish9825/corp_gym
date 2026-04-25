@@ -1,0 +1,16 @@
+{
+  "total": 8,
+  "by_status": {
+    "clean": 8
+  },
+  "by_reject_reason": {
+    "clean": 8
+  },
+  "by_task": {
+    "h1_acquisition_defence": {
+      "clean": 8
+    }
+  },
+  "clean_avg_terminal_reward": 1.05,
+  "clean_avg_verifier_pass_rate": 1.0
+}
