@@ -87,12 +87,27 @@ from scripts._trajectory_utils import (  # noqa: E402
     DEFAULT_TASKS,
     extract_actions,
     extract_json_object,
+    normalize_action_obj,
     observation_message,
     oracle_actions,
     read_jsonl,
 )
 from server.agents.master_prompts import build_system_prompt  # noqa: E402
 from server.environment import CorpEnvironment  # noqa: E402
+
+REWARD_CFG: Dict[str, Any] = {
+    "strict_json": True,
+    "invalid_json_penalty": -0.8,
+    "invalid_action_penalty": -0.6,
+    "prefix_error_penalty": -0.4,
+}
+REWARD_STATS: Dict[str, int] = {
+    "calls": 0,
+    "prefix_fail": 0,
+    "json_fail": 0,
+    "action_fail": 0,
+    "env_error": 0,
+}
 
 
 def prompt_for_prefix(task_id: str, prefix_actions: List[Dict[str, Any]]) -> List[Dict[str, str]]:
@@ -113,7 +128,12 @@ def _examples_paths(examples_path: str) -> List[Path]:
     return [Path(p.strip()) for p in examples_path.split(",") if p.strip()]
 
 
-def build_prompt_dataset(examples_path: str, tasks: List[str], repeats: int) -> List[Dict[str, Any]]:
+def build_prompt_dataset(
+    examples_path: str,
+    tasks: List[str],
+    repeats: int,
+    min_reasoning_steps: int,
+) -> List[Dict[str, Any]]:
     """Load examples from one or more JSONLs (comma-separated). Falls back to oracle prefixes if all missing/empty."""
     rows: List[Dict[str, Any]] = []
     for path in _examples_paths(examples_path):
@@ -121,6 +141,8 @@ def build_prompt_dataset(examples_path: str, tasks: List[str], repeats: int) -> 
             continue
         for example in read_jsonl(path):
             if example.get("status") and example.get("status") != "clean":
+                continue
+            if int(example.get("reasoning_steps", 0)) < min_reasoning_steps:
                 continue
             task_id = str(example.get("task_id") or "")
             if task_id not in tasks:
@@ -153,6 +175,77 @@ def build_prompt_dataset(examples_path: str, tasks: List[str], repeats: int) -> 
     return rows
 
 
+def completion_to_text(completion: Any) -> str:
+    text = completion
+    if isinstance(completion, list) and completion:
+        text = completion[0].get("content", "")
+    elif isinstance(completion, dict):
+        text = completion.get("content", "")
+    return str(text)
+
+
+def score_completion(
+    *,
+    completion_text: str,
+    task_id: str,
+    prefix_raw: str,
+) -> tuple[float, Dict[str, float], str]:
+    env = CorpEnvironment()
+    obs = env.reset(task_id=task_id)
+    components: Dict[str, float] = {
+        "format_valid": 0.0,
+        "action_valid": 0.0,
+        "env_step": 0.0,
+        "verifier_pass": 0.0,
+        "terminal_reward": 0.0,
+        "error_penalty": 0.0,
+    }
+    status = "ok"
+    try:
+        prefix = json.loads(prefix_raw)
+        for action_obj in prefix:
+            obs = env.step(CorpAction.model_validate(action_obj))
+            if obs.done:
+                break
+    except Exception:
+        status = "prefix_fail"
+        return REWARD_CFG["prefix_error_penalty"], components, status
+
+    try:
+        obj = extract_json_object(completion_text, strict=bool(REWARD_CFG["strict_json"]))
+        components["format_valid"] = 0.15
+    except Exception:
+        status = "json_fail"
+        return REWARD_CFG["invalid_json_penalty"], components, status
+
+    try:
+        action_obj = normalize_action_obj(obj, strict=bool(REWARD_CFG["strict_json"]))
+        action = CorpAction.model_validate(action_obj)
+        components["action_valid"] = 0.20
+    except Exception:
+        status = "action_fail"
+        return REWARD_CFG["invalid_action_penalty"], components, status
+
+    obs = env.step(action)
+    components["env_step"] = 0.15 if not obs.error else -0.10
+    verifier = env.task.verifier(obs.swd)
+    if verifier:
+        components["verifier_pass"] = sum(1.0 for v in verifier.values() if v) / len(verifier)
+    components["terminal_reward"] = float(obs.reward or 0.0)
+    if obs.error:
+        status = "env_error"
+        components["error_penalty"] = -0.2
+    score = (
+        components["format_valid"]
+        + components["action_valid"]
+        + components["env_step"]
+        + 0.25 * components["verifier_pass"]
+        + 0.50 * components["terminal_reward"]
+        + components["error_penalty"]
+    )
+    return max(-1.0, min(1.0, score)), components, status
+
+
 def environment_reward(
     completions: List[Any],
     task_id: List[str],
@@ -161,37 +254,24 @@ def environment_reward(
 ) -> List[float]:
     rewards: List[float] = []
     for completion, tid, prefix_raw in zip(completions, task_id, prefix_actions):
-        env = CorpEnvironment()
-        obs = env.reset(task_id=tid)
-        try:
-            prefix = json.loads(prefix_raw)
-            for action_obj in prefix:
-                obs = env.step(CorpAction.model_validate(action_obj))
-                if obs.done:
-                    break
-        except Exception:
-            rewards.append(-0.25)
-            continue
-
-        text = completion
-        if isinstance(completion, list) and completion:
-            text = completion[0].get("content", "")
-        elif isinstance(completion, dict):
-            text = completion.get("content", "")
-        try:
-            obj = extract_json_object(str(text))
-            obj.pop("thought", None)
-            if "payload" in obj and not isinstance(obj["payload"], str):
-                obj["payload"] = json.dumps(obj["payload"], ensure_ascii=False)
-            action = CorpAction.model_validate(obj)
-        except Exception:
-            rewards.append(-0.25)
-            continue
-        obs = env.step(action)
-        reward = float(obs.reward or 0.0)
-        if obs.error:
-            reward -= 0.15
-        rewards.append(max(-1.0, min(1.0, reward)))
+        score, _components, status = score_completion(
+            completion_text=completion_to_text(completion),
+            task_id=tid,
+            prefix_raw=prefix_raw,
+        )
+        REWARD_STATS["calls"] += 1
+        if status in REWARD_STATS:
+            REWARD_STATS[status] += 1
+        if REWARD_STATS["calls"] % 100 == 0:
+            print(
+                "reward_stats "
+                f"calls={REWARD_STATS['calls']} "
+                f"prefix_fail={REWARD_STATS['prefix_fail']} "
+                f"json_fail={REWARD_STATS['json_fail']} "
+                f"action_fail={REWARD_STATS['action_fail']} "
+                f"env_error={REWARD_STATS['env_error']}"
+            )
+        rewards.append(score)
     return rewards
 
 
@@ -252,6 +332,17 @@ def main() -> None:
         help="When dataloader_num_workers>0, optional prefetch depth (e.g. 2).",
     )
     parser.add_argument("--push-to-hub", default="")
+    parser.add_argument(
+        "--strict-json",
+        action="store_true",
+        help="Require completion to be a single strict JSON object.",
+    )
+    parser.add_argument(
+        "--min-reasoning-steps",
+        type=int,
+        default=1,
+        help="Filter training examples to traces with at least this many log_reasoning actions.",
+    )
     args = parser.parse_args()
 
     os.environ.setdefault("CORP_STUB_WORKERS", "1")
@@ -269,9 +360,10 @@ def main() -> None:
         ) from exc
 
     PatchFastRL("GRPO", FastLanguageModel)
+    REWARD_CFG["strict_json"] = bool(args.strict_json)
 
     tasks = [t.strip() for t in args.tasks.split(",") if t.strip()] or list(DEFAULT_TASKS)
-    rows = build_prompt_dataset(args.examples, tasks, args.repeats)
+    rows = build_prompt_dataset(args.examples, tasks, args.repeats, args.min_reasoning_steps)
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model,

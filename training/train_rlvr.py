@@ -79,8 +79,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from training.train_grpo import build_prompt_dataset, environment_reward  # noqa: E402
-from scripts._trajectory_utils import DEFAULT_TASKS  # noqa: E402
+from training.train_grpo import (  # noqa: E402
+    REWARD_CFG,
+    build_prompt_dataset,
+    score_completion,
+)
+from scripts._trajectory_utils import DEFAULT_TASKS, normalize_action_obj  # noqa: E402
 
 
 def _sft_config_field_names() -> set[str]:
@@ -164,6 +168,7 @@ def rollout_round(
     top_p: float,
     max_new_tokens: int,
     reward_threshold: float,
+    strict_json: bool,
     log_every: int = 10,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, float]]:
     kept_rows: List[Dict[str, Any]] = []
@@ -171,6 +176,7 @@ def rollout_round(
     best_rewards: List[float] = []
     per_task_kept: Dict[str, int] = {}
     per_task_total: Dict[str, int] = {}
+    reward_status_counts: Dict[str, int] = {}
 
     t0 = time.time()
     for idx, row in enumerate(rows):
@@ -192,21 +198,29 @@ def rollout_round(
             print(f"  [{idx}] {task_id}: generation error {exc!r}")
             continue
 
-        rewards = environment_reward(
-            completions=completions,
-            task_id=[task_id] * len(completions),
-            prefix_actions=[prefix_json] * len(completions),
-        )
+        rewards: List[float] = []
+        for text in completions:
+            score, _components, status = score_completion(
+                completion_text=text,
+                task_id=task_id,
+                prefix_raw=prefix_json,
+            )
+            rewards.append(score)
+            reward_status_counts[status] = reward_status_counts.get(status, 0) + 1
         all_rewards.extend(rewards)
         best_idx = max(range(len(rewards)), key=lambda j: rewards[j])
         best_r = float(rewards[best_idx])
         best_rewards.append(best_r)
 
         if best_r >= reward_threshold:
+            best_text = completions[best_idx]
+            if strict_json:
+                action_obj = normalize_action_obj(best_text, strict=True)
+                best_text = json.dumps(action_obj, ensure_ascii=False)
             kept_rows.append(
                 {
                     "messages": list(row["prompt"])
-                    + [{"role": "assistant", "content": completions[best_idx]}],
+                    + [{"role": "assistant", "content": best_text}],
                     "task_id": task_id,
                     "reward": best_r,
                 }
@@ -235,6 +249,8 @@ def rollout_round(
     }
     for tid in per_task_total:
         stats[f"keep_rate/{tid}"] = per_task_kept.get(tid, 0) / per_task_total[tid]
+    for status, count in reward_status_counts.items():
+        stats[f"reward_status/{status}"] = float(count)
     return kept_rows, stats
 
 
@@ -365,6 +381,17 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=3407)
     parser.add_argument("--push-to-hub", default="")
     parser.add_argument(
+        "--strict-json",
+        action="store_true",
+        help="Require sampled completions to parse as a strict single JSON object action.",
+    )
+    parser.add_argument(
+        "--min-reasoning-steps",
+        type=int,
+        default=1,
+        help="Filter prompt dataset to trajectories with at least this many reasoning steps.",
+    )
+    parser.add_argument(
         "--stats-file",
         default="",
         help="Optional JSONL to append per-round rollout stats to.",
@@ -386,7 +413,13 @@ def main() -> None:
         ) from exc
 
     tasks = [t.strip() for t in args.tasks.split(",") if t.strip()] or list(DEFAULT_TASKS)
-    full_rows = build_prompt_dataset(args.examples, tasks, args.repeats)
+    REWARD_CFG["strict_json"] = bool(args.strict_json)
+    full_rows = build_prompt_dataset(
+        args.examples,
+        tasks,
+        args.repeats,
+        args.min_reasoning_steps,
+    )
     print(f"Built {len(full_rows)} prompts from {args.examples}")
 
     max_seq_len = args.max_prompt_length + args.max_completion_length
@@ -449,6 +482,7 @@ def main() -> None:
             top_p=args.top_p,
             max_new_tokens=args.max_completion_length,
             reward_threshold=args.reward_threshold,
+            strict_json=args.strict_json,
         )
         stats["round"] = round_idx
         print(

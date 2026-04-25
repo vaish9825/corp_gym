@@ -8,7 +8,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -20,6 +20,8 @@ from server.environment import CorpEnvironment  # noqa: E402
 
 
 DEFAULT_TASKS = ("e1_launch_readiness", "m1_budget_reallocation", "h1_acquisition_defence")
+_ACTION_ALLOWED_KEYS = {"action_type", "agent_id", "payload", "metadata"}
+_ACTION_ALLOWED_EXTRAS = {"thought"}
 
 
 @dataclass
@@ -36,6 +38,10 @@ class ReplayResult:
     missed_milestones: List[str]
     invalid_action_count: int
     env_error_count: int
+    reasoning_steps: int
+    conflict_steps: int
+    resolution_steps: int
+    phase_progression_ok: bool
     final_swd_version: int
     final_swd: Dict[str, Any]
 
@@ -62,6 +68,10 @@ class ReplayResult:
             "missed_milestones": self.missed_milestones,
             "invalid_action_count": self.invalid_action_count,
             "env_error_count": self.env_error_count,
+            "reasoning_steps": self.reasoning_steps,
+            "conflict_steps": self.conflict_steps,
+            "resolution_steps": self.resolution_steps,
+            "phase_progression_ok": self.phase_progression_ok,
             "final_swd_version": self.final_swd_version,
             "actions": self.actions,
             "final_swd": self.final_swd,
@@ -95,7 +105,19 @@ def write_jsonl(path: Path, rows: Iterable[Dict[str, Any]]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def extract_json_object(text: str) -> Dict[str, Any]:
+def _strict_json_object(text: str) -> Dict[str, Any]:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        raise ValueError("strict_json_disallows_fenced_blocks")
+    obj = json.loads(cleaned)
+    if not isinstance(obj, dict):
+        raise ValueError("strict_json_requires_single_object")
+    return obj
+
+
+def extract_json_object(text: str, *, strict: bool = False) -> Dict[str, Any]:
+    if strict:
+        return _strict_json_object(text)
     cleaned = text.strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```\s*$", "", cleaned).strip()
@@ -136,19 +158,38 @@ def extract_json_object(text: str) -> Dict[str, Any]:
     raise ValueError("unbalanced JSON object")
 
 
-def normalize_action_obj(raw: Any) -> Dict[str, Any]:
+def normalize_action_obj(
+    raw: Any,
+    *,
+    strict: bool = False,
+    allowed_extra_keys: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
     if isinstance(raw, str):
-        raw = extract_json_object(raw)
+        raw = extract_json_object(raw, strict=strict)
     if not isinstance(raw, dict):
         raise ValueError("action must be a JSON object or string containing one")
     raw = dict(raw)
+    allowed = set(_ACTION_ALLOWED_KEYS)
+    extra = set(allowed_extra_keys or ())
+    allowed.update(extra)
+    if strict:
+        unknown = sorted(k for k in raw if k not in allowed and k not in _ACTION_ALLOWED_EXTRAS)
+        if unknown:
+            raise ValueError(f"unexpected_action_keys: {unknown}")
     raw.pop("thought", None)
+    if "action_type" not in raw or not isinstance(raw["action_type"], str):
+        raise ValueError("missing_or_invalid_action_type")
     if "payload" in raw and not isinstance(raw["payload"], str):
+        if strict:
+            raise ValueError("strict_json_requires_payload_string")
         raw["payload"] = json.dumps(raw["payload"], ensure_ascii=False)
     raw.setdefault("payload", "")
     if raw.get("agent_id") == "":
         raw["agent_id"] = None
-    return CorpAction.model_validate(raw).model_dump(mode="json", exclude_none=True)
+    out = CorpAction.model_validate(raw).model_dump(mode="json", exclude_none=True)
+    if strict and set(out) - _ACTION_ALLOWED_KEYS:
+        raise ValueError("non_canonical_action_shape")
+    return out
 
 
 def extract_actions(example: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -181,6 +222,44 @@ def extract_actions(example: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [normalize_action_obj(action) for action in raw_actions]
 
 
+def deliberation_features(actions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    reasoning_steps = sum(1 for a in actions if a.get("action_type") == "log_reasoning")
+    conflict_steps = sum(1 for a in actions if a.get("action_type") == "log_conflict")
+    resolution_steps = sum(1 for a in actions if a.get("action_type") == "log_resolution")
+    phases = [
+        str(a.get("payload", "")).strip().lower()
+        for a in actions
+        if a.get("action_type") == "advance_phase"
+    ]
+    expected = ["analysis", "decision", "execution"]
+    idx = 0
+    for phase in phases:
+        if idx < len(expected) and phase == expected[idx]:
+            idx += 1
+    phase_progression_ok = idx == len(expected)
+    return {
+        "reasoning_steps": reasoning_steps,
+        "conflict_steps": conflict_steps,
+        "resolution_steps": resolution_steps,
+        "phase_progression_ok": phase_progression_ok,
+    }
+
+
+def validate_stepwise_deliberation(task_id: str, actions: List[Dict[str, Any]]) -> str:
+    features = deliberation_features(actions)
+    reasoning_min = 1 if task_id in {"e1_launch_readiness", "m1_budget_reallocation"} else 3
+    if features["reasoning_steps"] < reasoning_min:
+        return "insufficient_stepwise_reasoning"
+    if task_id in {"m1_budget_reallocation", "h1_acquisition_defence"}:
+        if features["conflict_steps"] < 1:
+            return "missing_conflict_logging"
+        if features["resolution_steps"] < 1:
+            return "missing_resolution_logging"
+    if task_id == "h1_acquisition_defence" and not features["phase_progression_ok"]:
+        return "invalid_phase_progression"
+    return ""
+
+
 def observation_message(step: int, obs: CorpObservation) -> str:
     parts = [
         f"--- Step {step} ---",
@@ -203,7 +282,7 @@ def observation_message(step: int, obs: CorpObservation) -> str:
     if obs.error:
         parts.append(f"Error: {obs.error}")
     parts.append(f"Reward (last step): {obs.reward}")
-    parts.append("Respond with your next JSON action.")
+    parts.append("Respond with exactly one JSON object for your next action (no markdown fences).")
     return "\n".join(parts)
 
 
@@ -253,6 +332,8 @@ def replay_actions(
     task_id: str,
     actions: List[Dict[str, Any]],
     strict_thresholds: bool = True,
+    strict_json: bool = False,
+    require_stepwise_deliberation: bool = False,
 ) -> ReplayResult:
     os.environ.setdefault("CORP_STUB_WORKERS", "1")
     os.environ.setdefault("CORP_DISABLE_LLM_JUDGE", "1")
@@ -264,10 +345,18 @@ def replay_actions(
     invalid_action_count = 0
     env_error_count = 0
     reject_reason = ""
+    features = deliberation_features(actions)
+
+    if require_stepwise_deliberation:
+        reject_reason = validate_stepwise_deliberation(task_id, actions)
 
     for idx, action_obj in enumerate(actions, start=1):
+        if reject_reason:
+            break
         try:
-            action = CorpAction.model_validate(action_obj)
+            action = CorpAction.model_validate(
+                normalize_action_obj(action_obj, strict=strict_json)
+            )
         except Exception as exc:
             invalid_action_count += 1
             reject_reason = f"invalid_action_at_step_{idx}: {exc}"
@@ -315,6 +404,10 @@ def replay_actions(
         missed_milestones=missed,
         invalid_action_count=invalid_action_count,
         env_error_count=env_error_count,
+        reasoning_steps=int(features["reasoning_steps"]),
+        conflict_steps=int(features["conflict_steps"]),
+        resolution_steps=int(features["resolution_steps"]),
+        phase_progression_ok=bool(features["phase_progression_ok"]),
         final_swd_version=int(final_swd.get("swd_version", 0)),
         final_swd=final_swd,
     )

@@ -1,0 +1,21 @@
+{
+  "total": 200,
+  "by_status": {
+    "clean": 200
+  },
+  "by_reject_reason": {
+    "clean": 200
+  },
+  "by_task": {
+    "e1_launch_readiness": {
+      "clean": 100
+    },
+    "m1_budget_reallocation": {
+      "clean": 100
+    }
+  },
+  "clean_avg_terminal_reward": 0.926666,
+  "clean_avg_verifier_pass_rate": 1.0,
+  "clean_avg_reasoning_steps": 1.0,
+  "clean_phase_progression_ok_rate": 0.0
+}

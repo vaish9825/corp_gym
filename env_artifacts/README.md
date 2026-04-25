@@ -1,7 +1,7 @@
 # Lightning AI H100 environment — reproduction artifacts
 
 Files in this folder capture the exact, *working* stack we landed on for
-`corp_gym` SFT/GRPO/RLVR training. Use them to bring up a fresh Lightning AI
+`corp_gym` SFT/RLVR training. Use them to bring up a fresh Lightning AI
 Studio (or any Linux H100 with driver >= 570, CUDA 12.8 runtime, Python 3.12).
 
 ## Contents
@@ -16,6 +16,16 @@ Studio (or any Linux H100 with driver >= 570, CUDA 12.8 runtime, Python 3.12).
 - `requirements_frozen.txt` — full `pip freeze` of the exact environment
   (treat as a ground truth, not a reinstall recipe — it does not know about
   `--index-url` or wheel URLs).
+
+## Recommended Lightning Studio environment
+
+- GPU: **1x NVIDIA H100 80GB**
+- Runtime: Linux with CUDA **12.8** compatible driver (**>= 570.x**)
+- Python: **3.12** (base Lightning image is fine)
+- Start from a fresh Studio and run `bash env_artifacts/setup_lightning_h100.sh`
+
+This is the fastest conflict-free path for Unsloth in this repo because it
+pins a known-good torch/xformers/flash-attn intersection.
 
 ## Tested against
 
@@ -64,13 +74,11 @@ huggingface-cli login   # once per container
 The prior run pushed both adapters to `Navigam/*`:
 
 - `Navigam/corp-env-sft-qwen2.5-7b`
-- `Navigam/corp-env-grpo-qwen2.5-7b`
 
 You can pull them locally on a new box with:
 
 ```bash
 huggingface-cli download Navigam/corp-env-sft-qwen2.5-7b --local-dir outputs/sft_adapter
-huggingface-cli download Navigam/corp-env-grpo-qwen2.5-7b --local-dir outputs/grpo_adapter
 ```
 
 Then for the RLVR run:
@@ -91,13 +99,13 @@ python training/train_rlvr.py \
 - **First time only on any new box**: `unsloth` writes patched-trainer classes
   into `corp_gym/unsloth_compiled_cache/`. Delete that folder if you ever
   change TRL/unsloth versions to avoid stale compiled patches.
-- **Flash-attn fp32 bug**: in `training/train_grpo.py` and
+- **Flash-attn fp32 bug**: in `training/train_grpo.py` (legacy) and
   `training/train_rlvr.py` we monkey-patch `flash_attn_func` in both
   `flash_attn.flash_attn_interface` and `unsloth.utils.attention_dispatch` to
   auto-cast Q/K/V to bf16. Without the dispatcher-level patch, Unsloth's copy
   of the symbol bypasses ours and FA2 rejects fp32 tensors during the no-grad
   reference logprob forward.
-- **max_prompt_length filter**: both GRPO and RLVR scripts tokenise every
+- **max_prompt_length filter**: both legacy GRPO and RLVR scripts tokenise every
   prompt up-front and drop rows whose chat-template-encoded length exceeds
   `0.9 * max_prompt_length` (long H1 trajectories otherwise produce a causal
   mask / attention mask size mismatch at generation time).

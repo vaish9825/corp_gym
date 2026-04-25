@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Reproduce the torch 2.7.1 + cu128 stack that worked on the previous
-# Lightning AI H100 container for corp_gym SFT/GRPO/RLVR training.
+# Lightning AI H100 container for corp_gym SFT/RLVR training.
 #
 # Target environment:
 #   - NVIDIA H100 80GB HBM3 (sm_90), driver >= 570.x, CUDA runtime 12.8
@@ -63,7 +63,7 @@ import flash_attn; print("flash_attn", flash_attn.__version__)
 import xformers, xformers.ops; print("xformers", xformers.__version__, "ops OK")
 import torchao; print("torchao", torchao.__version__)
 from unsloth import FastLanguageModel  # noqa
-from trl import SFTConfig, GRPOConfig   # noqa
+from trl import SFTConfig, SFTTrainer   # noqa
 print("unsloth + trl OK")
 PY
 

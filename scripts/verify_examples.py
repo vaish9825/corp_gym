@@ -32,7 +32,12 @@ from scripts._trajectory_utils import (  # noqa: E402
 )
 
 
-def verify_one(example: Dict[str, Any], strict_thresholds: bool) -> Dict[str, Any]:
+def verify_one(
+    example: Dict[str, Any],
+    strict_thresholds: bool,
+    strict_json: bool,
+    require_stepwise_deliberation: bool,
+) -> Dict[str, Any]:
     example_id = str(example.get("example_id") or example.get("id") or "unknown")
     task_id = str(example.get("task_id") or example.get("task") or "")
     if example.get("_load_error"):
@@ -67,6 +72,8 @@ def verify_one(example: Dict[str, Any], strict_thresholds: bool) -> Dict[str, An
             task_id=task_id,
             actions=actions,
             strict_thresholds=strict_thresholds,
+            strict_json=strict_json,
+            require_stepwise_deliberation=require_stepwise_deliberation,
         )
     except Exception as exc:
         return {
@@ -101,6 +108,16 @@ def summarize(records: List[Dict[str, Any]]) -> Dict[str, Any]:
             if clean
             else 0.0
         ),
+        "clean_avg_reasoning_steps": (
+            round(sum(float(r.get("reasoning_steps", 0.0)) for r in clean) / len(clean), 6)
+            if clean
+            else 0.0
+        ),
+        "clean_phase_progression_ok_rate": (
+            round(sum(1.0 for r in clean if r.get("phase_progression_ok")) / len(clean), 6)
+            if clean
+            else 0.0
+        ),
     }
 
 
@@ -116,10 +133,25 @@ def main() -> None:
         action="store_true",
         help="Only require replay validity; do not apply task reward/pass thresholds.",
     )
+    parser.add_argument(
+        "--strict-json",
+        action="store_true",
+        help="Require strict single-object JSON action format with canonical action keys.",
+    )
+    parser.add_argument(
+        "--require-stepwise-deliberation",
+        action="store_true",
+        help="Enforce task-specific step-wise deliberation checks (reasoning/conflict/resolution/phases).",
+    )
     args = parser.parse_args()
 
     records = [
-        verify_one(example, strict_thresholds=not args.lenient)
+        verify_one(
+            example,
+            strict_thresholds=not args.lenient,
+            strict_json=args.strict_json,
+            require_stepwise_deliberation=args.require_stepwise_deliberation,
+        )
         for example in read_jsonl(Path(args.input))
     ]
     clean = [r for r in records if r["status"] == "clean"]
