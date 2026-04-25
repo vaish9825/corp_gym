@@ -37,7 +37,7 @@ def deep_clone_swd(swd: Dict[str, Any]) -> Dict[str, Any]:
 
 def ensure_agent_report_keys(swd: Dict[str, Any]) -> None:
     ar = swd.setdefault("agent_reports", {})
-    for k in ("dev", "hr", "finance"):
+    for k in ("qa", "dev", "hr", "finance"):
         ar.setdefault(k, None)
 
 

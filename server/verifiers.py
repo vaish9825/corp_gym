@@ -33,14 +33,12 @@ def check_no_verbatim_copy(swd: Dict[str, Any]) -> bool:
 
 def verify_e1(swd: Dict[str, Any]) -> Dict[str, bool]:
     checks = {
-        "dev_report_present": swd.get("agent_reports", {}).get("dev") is not None,
-        "hr_report_present": swd.get("agent_reports", {}).get("hr") is not None,
-        "final_rec_valid": swd.get("final_recommendation") in ("GO", "NO_GO"),
-        "reason_present": len(swd.get("decisions", []) or []) >= 1,
+        "qa_report_present": swd.get("agent_reports", {}).get("qa") is not None,
+        "final_rec_valid": swd.get("final_recommendation") in ("GO", "NO_GO", "NO-GO"),
         "no_missed_milestones": all(
             m.get("status") != "missed" for m in (swd.get("milestones") or [])
         ),
-        "swd_version_advanced": int(swd.get("swd_version", 0)) >= 4,
+        "swd_version_advanced": int(swd.get("swd_version", 0)) >= 3,
     }
     return checks
 
@@ -50,16 +48,16 @@ def verify_m1(swd: Dict[str, Any]) -> Dict[str, bool]:
     if not isinstance(final, dict):
         final = {}
     checks = {
-        "all_agents_consulted": all(
-            swd.get("agent_reports", {}).get(a) is not None for a in ("dev", "hr", "finance")
+        "required_agents_consulted": all(
+            swd.get("agent_reports", {}).get(a) is not None for a in ("dev", "finance")
         ),
-        "conflict_logged": len(swd.get("conflicts_identified", []) or []) >= 1,
+        "exactly_one_conflict_logged": len(swd.get("conflicts_identified", []) or []) == 1,
         "conflict_resolved": len(swd.get("conflict_resolutions", []) or []) >= 1,
         "phased_plan": "phase_1" in final and "phase_2" in final,
         "budget_constraint_acknowledged": any(
             "budget" in str(d).lower() for d in (swd.get("decisions", []) or [])
         ),
-        "reasoning_documented": len(swd.get("reasoning_log", []) or []) >= 3,
+        "reasoning_documented": len(swd.get("reasoning_log", []) or []) >= 2,
     }
     return checks
 

@@ -11,13 +11,13 @@ from server.verifiers import verify_e1
 class E1LaunchReadinessTask(CorpTask):
     task_id = "e1_launch_readiness"
     description = (
-        "As PM, a new feature is scheduled to launch in 48h. Verify readiness using "
-        "dev_agent and hr_agent. Maintain the SWD: delegate for specialist input, "
-        "log decisions, then finalize with GO or NO_GO plus documented rationale."
+        "As PM, a new feature is launching in 48 hours. You only need to check "
+        "codebase stability before launch. Consult qa_agent, capture the test "
+        "status in SWD, then finalize with GO or NO_GO."
     )
     role = "Product Manager"
-    available_agents = ["dev_agent", "hr_agent"]
-    token_budget = 4096
+    available_agents = ["qa_agent"]
+    token_budget = 8192
 
     def initial_swd(self, episode_id: str) -> Dict[str, Any]:
         return {
@@ -27,30 +27,22 @@ class E1LaunchReadinessTask(CorpTask):
             "milestones": [
                 {
                     "id": "m1",
-                    "label": "Dev readiness captured in agent_reports.dev",
-                    "due_by_turn": 4,
+                    "label": "QA report captured in agent_reports.qa",
+                    "due_by_turn": 6,
                     "status": "pending",
                     "owner": "master",
                     "output": None,
                 },
                 {
                     "id": "m2",
-                    "label": "HR staffing sign-off in agent_reports.hr",
-                    "due_by_turn": 7,
-                    "status": "pending",
-                    "owner": "master",
-                    "output": None,
-                },
-                {
-                    "id": "m3",
-                    "label": "final_recommendation GO/NO_GO with rationale",
-                    "due_by_turn": 10,
+                    "label": "final_recommendation GO/NO_GO populated",
+                    "due_by_turn": 12,
                     "status": "pending",
                     "owner": "master",
                     "output": None,
                 },
             ],
-            "agent_reports": {"dev": None, "hr": None, "finance": None},
+            "agent_reports": {"qa": None, "dev": None, "hr": None, "finance": None},
             "decisions": [],
             "conflicts_identified": [],
             "conflict_resolutions": [],
@@ -65,10 +57,8 @@ class E1LaunchReadinessTask(CorpTask):
     def milestone_complete(self, swd: Dict[str, Any], milestone_id: str) -> bool:
         ar = swd.get("agent_reports", {})
         if milestone_id == "m1":
-            return ar.get("dev") is not None
+            return ar.get("qa") is not None
         if milestone_id == "m2":
-            return ar.get("hr") is not None
-        if milestone_id == "m3":
             fr = swd.get("final_recommendation")
             return fr is not None and fr in ("GO", "NO_GO")
         return False

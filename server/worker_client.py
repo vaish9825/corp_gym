@@ -11,6 +11,13 @@ from server.agents.prompts import WORKER_PROMPTS
 from server.llm_env import openai_client_kwargs_worker, worker_model_for
 
 STUB_OUTPUTS = {
+    "qa_agent": (
+        "TEST_SUMMARY: unit=382/390 pass, integration=72/80 pass, e2e=19/25 pass. "
+        "PASS_FAIL_METRIC: 473/495 passed (95.56%), 22 failed. "
+        "FLAKY_TESTS: 4 unstable tests in notification and retry paths. "
+        "BLOCKERS: 2 deterministic failures in payment rollback and migration smoke test. "
+        "LAUNCH_GATE: FAIL until blockers are patched and e2e pass rate exceeds 98%."
+    ),
     "dev_agent": (
         "Dev readiness: feature branch merged, canary healthy, load tests within SLO. "
         "Residual risk: third-party API quota — mitigation: cache + backoff."
