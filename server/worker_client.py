@@ -8,6 +8,7 @@ from typing import Optional
 from openai import OpenAI
 
 from server.agents.prompts import WORKER_PROMPTS
+from server.llm_env import openai_client_kwargs_worker, worker_model_for
 
 STUB_OUTPUTS = {
     "dev_agent": (
@@ -44,19 +45,15 @@ def call_worker_model(
     if os.getenv("CORP_STUB_WORKERS", "").lower() in ("1", "true", "yes"):
         return call_model_stub(canonical_agent_id, task_description)
 
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-    if not api_key:
+    kwargs = openai_client_kwargs_worker(canonical_agent_id)
+    if not kwargs.get("api_key"):
         return call_model_stub(canonical_agent_id, task_description)
 
-    base_url = os.getenv("API_BASE_URL") or os.getenv("OPENAI_BASE_URL")
-    model = os.getenv("CORP_WORKER_MODEL") or os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-7B-Instruct"
+    model = worker_model_for(canonical_agent_id)
     system = WORKER_PROMPTS.get(
         canonical_agent_id,
         "You are a concise corporate advisor. Plain prose only.",
     )
-    kwargs = {"api_key": api_key}
-    if base_url:
-        kwargs["base_url"] = base_url
     client = OpenAI(**kwargs)
     resp = client.chat.completions.create(
         model=model,

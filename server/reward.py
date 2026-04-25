@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from openai import OpenAI
 
+from server.llm_env import openai_client_kwargs_judge
 from server.swd import (
     REQUIRED_TOP_LEVEL,
     VALID_PHASES,
@@ -51,16 +52,15 @@ def compute_swd_coherence(swd: Dict[str, Any]) -> float:
 def call_llm_judge(swd: Dict[str, Any], task_goal: str) -> float:
     """
     Fast LLM judge (optional). Returns score in [0, 1] from YES count / 3.
-    Disabled when OPENAI_API_KEY / HF_TOKEN missing unless CORP_FORCE_JUDGE=1.
+    Uses CORP_JUDGE_* then global API keys (see server/llm_env.py). No call without a key.
     """
     if os.getenv("CORP_DISABLE_LLM_JUDGE", "").lower() in ("1", "true", "yes"):
         return 0.0
 
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-    if not api_key and os.getenv("CORP_FORCE_JUDGE", "").lower() not in ("1", "true"):
+    kwargs = openai_client_kwargs_judge()
+    if not kwargs.get("api_key"):
         return 0.0
 
-    base_url = os.getenv("API_BASE_URL") or os.getenv("OPENAI_BASE_URL")
     model = os.getenv("CORP_JUDGE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 
     prompt = f"""
@@ -82,9 +82,6 @@ Q1: YES/NO
 Q2: YES/NO
 Q3: YES/NO
 """
-    kwargs: Dict[str, Any] = {"api_key": api_key}
-    if base_url:
-        kwargs["base_url"] = base_url
     client = OpenAI(**kwargs)
     resp = client.chat.completions.create(
         model=model,

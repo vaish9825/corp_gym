@@ -53,11 +53,11 @@ uv run server
 
 ## Baseline inference (master agent)
 
-Requires `HF_TOKEN` or `OPENAI_API_KEY` for the **master** model. Without a key, `inference.py` runs a short **deterministic E1** smoke test using stub workers.
+Requires a **master** API key (`CORP_MASTER_API_KEY`, or `HF_TOKEN` / `OPENAI_API_KEY` as fallback). Without it, `inference.py` runs a short **deterministic E1** smoke test using stub workers. Optional **per-worker** and **judge** keys/URLs are in [`.env.example`](.env.example). Set `CORP_SWD_TRACE_FILE` or pass `--swd-trace path.jsonl` to append SWD snapshots to a file separate from console logs.
 
 ```powershell
 uv run python inference.py
-uv run python inference.py --tasks e1_launch_readiness --max-steps 25
+uv run python inference.py --tasks e1_launch_readiness --max-steps 25 --swd-trace logs/run.jsonl
 ```
 
 ## OpenEnv validation
@@ -79,7 +79,7 @@ docker run -p 7860:7860 --env-file .env.example corp-env
 
 ## Configuration
 
-See [`.env.example`](.env.example) for `CORP_TASK_ID`, `CORP_STUB_WORKERS`, judge toggles, and API routing.
+See [`.env.example`](.env.example) for master/worker/judge API routing, `CORP_TASK_ID`, `CORP_STUB_WORKERS`, and `CORP_SWD_TRACE_FILE`.
 
 ## License
 
