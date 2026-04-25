@@ -30,7 +30,7 @@ This repo replaces the earlier Jira-to-Code baseline (preserved as git tag `vali
 
 | ID | Difficulty | Summary |
 |----|------------|---------|
-| `e1_launch_readiness` | Easy | 48h product launch readiness (dev + HR). |
+| `e1_launch_readiness` | Easy | 48h product launch readiness (QA stability gate). |
 | `m1_budget_reallocation` | Medium | Budget conflict across dev / HR / finance. |
 | `h1_acquisition_defence` | Hard | Acquisition defence with injected contradictory intel. |
 

@@ -16,7 +16,7 @@ from server.swd import (
     conflict_ids_from_swd,
     validate_milestone_shapes,
 )
-from server.verifiers import check_no_verbatim_copy
+from server.verifiers import is_verbatim_copy
 
 
 def compute_swd_coherence(swd: Dict[str, Any]) -> float:
@@ -99,7 +99,7 @@ def reasoning_log_is_duplicated(swd: Dict[str, Any]) -> bool:
     if len(log) < 2:
         return False
     texts = [str(e.get("text", e)) for e in log if isinstance(e, dict)]
-    if len(set(texts)) < len(texts) * 0.5 and len(texts) >= 4:
+    if len(texts) >= 6 and len(set(texts)) < len(texts) * 0.3:
         return True
     return False
 
@@ -109,7 +109,7 @@ REWARD_HACKING_PENALTIES: List[Callable[[Dict[str, Any], Dict[str, Any]], float]
     if ep.get("finalized") and int(swd.get("swd_version", 0)) < 4
     else 0.0,
     lambda swd, ep: 0.1 * float(ep.get("consecutive_same_agent_calls", 0)),
-    lambda swd, ep: 0.25 if not check_no_verbatim_copy(swd) else 0.0,
+    lambda swd, ep: 0.25 if is_verbatim_copy(swd) else 0.0,
     lambda swd, ep: 0.5 if ep.get("version_decreased") else 0.0,
     lambda swd, ep: 0.15 if reasoning_log_is_duplicated(swd) else 0.0,
 ]

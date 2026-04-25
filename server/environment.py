@@ -15,7 +15,7 @@ from openenv.core.env_server.types import EnvironmentMetadata, State
 
 from server.agents.prompts import normalize_worker_id, swd_report_key
 from server.reward import compute_reward, compute_swd_coherence
-from server.swd import new_episode_id, try_apply_json_patch
+from server.swd import new_episode_id, try_apply_json_patch, validate_swd_structure
 from server.tasks import TASKS
 from server.tasks.base import CorpTask
 from server.worker_client import call_worker_model
@@ -285,6 +285,10 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
             self.episode_metadata,
             self.task.description,
         )
+        ok, err = validate_swd_structure(self.swd)
+        if not ok:
+            terminal = max(0.0, terminal - 0.05)
+            return terminal, True, f"finalize on structurally invalid SWD: {err}"
         return terminal, True, None
 
     def _update_milestone_status(self) -> List[str]:

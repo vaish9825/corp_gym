@@ -25,10 +25,17 @@ def check_no_verbatim_copy(swd: Dict[str, Any]) -> bool:
             report_grams = set(_ngrams(str(report).lower(), 5))
             final_grams = set(_ngrams(final_str, 5))
             if report_grams and final_grams:
-                overlap = len(final_grams & report_grams) / len(report_grams)
+                overlap = len(final_grams & report_grams) / min(
+                    len(report_grams), len(final_grams)
+                )
                 if overlap > 0.6:
                     return False
     return True
+
+
+def is_verbatim_copy(swd: Dict[str, Any]) -> bool:
+    """Return True when final_recommendation appears to copy a worker report."""
+    return not check_no_verbatim_copy(swd)
 
 
 def verify_e1(swd: Dict[str, Any]) -> Dict[str, bool]:
@@ -51,7 +58,7 @@ def verify_m1(swd: Dict[str, Any]) -> Dict[str, bool]:
         "required_agents_consulted": all(
             swd.get("agent_reports", {}).get(a) is not None for a in ("dev", "finance")
         ),
-        "exactly_one_conflict_logged": len(swd.get("conflicts_identified", []) or []) == 1,
+        "conflict_logged": len(swd.get("conflicts_identified", []) or []) >= 1,
         "conflict_resolved": len(swd.get("conflict_resolutions", []) or []) >= 1,
         "phased_plan": "phase_1" in final and "phase_2" in final,
         "budget_constraint_acknowledged": any(
