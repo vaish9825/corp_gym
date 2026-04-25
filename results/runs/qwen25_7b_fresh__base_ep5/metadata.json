@@ -1,0 +1,32 @@
+{
+  "model_stage": "base-qwen2.5-7b-fresh-ep5",
+  "policy": "hf",
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "adapter": "",
+  "tasks": [
+    "e1_launch_readiness",
+    "m1_budget_reallocation",
+    "h1_acquisition_defence"
+  ],
+  "episodes": 5,
+  "max_steps": 30,
+  "max_new_tokens": 1536,
+  "eval_file": "results/runs/qwen25_7b_fresh__base_ep5/base-qwen2.5-7b-fresh-ep5_eval.jsonl",
+  "metrics_by_task": {
+    "e1_launch_readiness": {
+      "avg_terminal_reward": 0.91,
+      "avg_verifier_pass_rate": 1.0,
+      "success_rate": 1.0
+    },
+    "m1_budget_reallocation": {
+      "avg_terminal_reward": 0.706667,
+      "avg_verifier_pass_rate": 0.533333,
+      "success_rate": 0.0
+    },
+    "h1_acquisition_defence": {
+      "avg_terminal_reward": 0.761333,
+      "avg_verifier_pass_rate": 0.666667,
+      "success_rate": 0.0
+    }
+  }
+}

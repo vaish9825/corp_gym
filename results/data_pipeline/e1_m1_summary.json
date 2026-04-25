@@ -14,7 +14,7 @@
       "clean": 100
     }
   },
-  "clean_avg_terminal_reward": 0.926666,
+  "clean_avg_terminal_reward": 0.926667,
   "clean_avg_verifier_pass_rate": 1.0,
   "clean_avg_reasoning_steps": 1.0,
   "clean_phase_progression_ok_rate": 0.0

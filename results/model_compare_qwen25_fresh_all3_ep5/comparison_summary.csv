@@ -1,0 +1,10 @@
+model_stage,task_id,episodes,avg_terminal_reward,avg_total_reward,avg_verifier_pass_rate,success_rate,avg_invalid_action_rate,avg_steps
+base-qwen2.5-7b-fresh-ep5,e1_launch_readiness,5,0.91,1.542,1.0,1.0,0.0,3.8
+base-qwen2.5-7b-fresh-ep5,h1_acquisition_defence,5,0.761333,2.333333,0.666667,0.0,0.0,7.8
+base-qwen2.5-7b-fresh-ep5,m1_budget_reallocation,5,0.706667,1.702667,0.533333,0.0,0.0,5.4
+sft-qwen2.5-7b-fresh-ep5,e1_launch_readiness,5,0.91,1.58,1.0,1.0,0.0,4.0
+sft-qwen2.5-7b-fresh-ep5,h1_acquisition_defence,5,0.8825,3.2345,0.75,0.0,0.0,11.8
+sft-qwen2.5-7b-fresh-ep5,m1_budget_reallocation,5,0.943333,2.093333,1.0,1.0,0.0,6.0
+rlvr-qwen2.5-7b-fresh-ep5,e1_launch_readiness,5,0.91,1.58,1.0,1.0,0.0,4.0
+rlvr-qwen2.5-7b-fresh-ep5,h1_acquisition_defence,5,0.779167,3.455167,0.683333,0.0,0.013333,13.4
+rlvr-qwen2.5-7b-fresh-ep5,m1_budget_reallocation,5,0.931666,2.079666,0.966667,0.8,0.028571,6.2
