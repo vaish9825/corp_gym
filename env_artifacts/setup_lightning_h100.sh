@@ -71,8 +71,6 @@ log "done. Export env vars in your shell (rc file or per-session):"
 cat <<'EOF'
 
   export HF_HUB_ENABLE_HF_TRANSFER=1
-  export CORP_STUB_WORKERS=1
-  export CORP_DISABLE_LLM_JUDGE=1
   export TOKENIZERS_PARALLELISM=false
   export TRANSFORMERS_VERBOSITY=warning
 

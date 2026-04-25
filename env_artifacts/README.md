@@ -61,8 +61,6 @@ pip install -e .          # picks up project deps without touching the pinned to
 
 # Per-session exports (stick these in ~/.bashrc if you want):
 export HF_HUB_ENABLE_HF_TRANSFER=1
-export CORP_STUB_WORKERS=1
-export CORP_DISABLE_LLM_JUDGE=1
 export TOKENIZERS_PARALLELISM=false
 export TRANSFORMERS_VERBOSITY=warning
 
@@ -81,17 +79,17 @@ You can pull them locally on a new box with:
 huggingface-cli download Navigam/corp-env-sft-qwen2.5-7b --local-dir outputs/sft_adapter
 ```
 
-Then for the RLVR run:
+Then for a direct 14B RLVR run:
 
 ```bash
 python training/train_rlvr.py \
-  --model Qwen/Qwen2.5-7B-Instruct \
-  --adapter outputs/sft_adapter \
+  --model Qwen/Qwen3-14B-Instruct \
+  --adapter outputs/sft_qwen3_14b \
   --examples data/processed/e1_m1_clean.jsonl,data/processed/h1_seed_clean.jsonl \
-  --output outputs/rlvr_adapter \
+  --output outputs/rlvr_qwen3_14b \
   --rounds 3 --n-samples 8 --max-prompts 128 \
   --stats-file results/runs/rlvr_stats.jsonl \
-  --push-to-hub Navigam/corp-env-rlvr-qwen2.5-7b
+  --push-to-hub <your-user-or-org>/corp-env-rlvr-qwen3-14b
 ```
 
 ## Notes / gotchas
@@ -99,12 +97,10 @@ python training/train_rlvr.py \
 - **First time only on any new box**: `unsloth` writes patched-trainer classes
   into `corp_gym/unsloth_compiled_cache/`. Delete that folder if you ever
   change TRL/unsloth versions to avoid stale compiled patches.
-- **Flash-attn fp32 bug**: in `training/train_grpo.py` (legacy) and
-  `training/train_rlvr.py` we monkey-patch `flash_attn_func` in both
-  `flash_attn.flash_attn_interface` and `unsloth.utils.attention_dispatch` to
-  auto-cast Q/K/V to bf16. Without the dispatcher-level patch, Unsloth's copy
-  of the symbol bypasses ours and FA2 rejects fp32 tensors during the no-grad
-  reference logprob forward.
+- **Flash-attn fp32 workaround**: this is now **legacy-only** for
+  `training/train_grpo.py`. It is disabled by default and can be enabled only
+  when needed via `CORP_ENABLE_FA2_BF16_PATCH=1`.
+- `training/train_rlvr.py` now runs without this monkey patch on modern stacks.
 - **max_prompt_length filter**: both legacy GRPO and RLVR scripts tokenise every
   prompt up-front and drop rows whose chat-template-encoded length exceeds
   `0.9 * max_prompt_length` (long H1 trajectories otherwise produce a causal

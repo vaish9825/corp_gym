@@ -22,12 +22,12 @@ completions, and the advantage-variance collapse in GRPO no longer applies.
 Run (after SFT)::
 
     python training/train_rlvr.py \\
-      --model Qwen/Qwen2.5-7B-Instruct \\
-      --adapter outputs/sft_adapter \\
+      --model Qwen/Qwen3-14B-Instruct \\
+      --adapter outputs/sft_qwen3_14b \\
       --examples data/processed/e1_m1_clean.jsonl,data/processed/h1_seed_clean.jsonl \\
-      --output outputs/rlvr_adapter \\
+      --output outputs/rlvr_qwen3_14b \\
       --rounds 3 --n-samples 8 --max-prompts 64 \\
-      --push-to-hub Navigam/corp-env-rlvr-qwen2.5-7b
+      --push-to-hub your-org/corp-env-rlvr-qwen3-14b
 """
 
 from __future__ import annotations
@@ -44,36 +44,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import torch
-
-try:
-    import flash_attn.flash_attn_interface as _fa_mod
-
-    _orig_fa_func = _fa_mod.flash_attn_func
-    _orig_fa_var = getattr(_fa_mod, "flash_attn_varlen_func", None)
-
-    def _fa_func_bf16(q, k, v, *args, **kwargs):
-        if q.dtype not in (torch.bfloat16, torch.float16):
-            q, k, v = q.to(torch.bfloat16), k.to(torch.bfloat16), v.to(torch.bfloat16)
-        return _orig_fa_func(q, k, v, *args, **kwargs)
-
-    def _fa_varlen_bf16(q, k, v, *args, **kwargs):
-        if q.dtype not in (torch.bfloat16, torch.float16):
-            q, k, v = q.to(torch.bfloat16), k.to(torch.bfloat16), v.to(torch.bfloat16)
-        return _orig_fa_var(q, k, v, *args, **kwargs)
-
-    _fa_mod.flash_attn_func = _fa_func_bf16
-    if _orig_fa_var is not None:
-        _fa_mod.flash_attn_varlen_func = _fa_varlen_bf16
-
-    try:
-        import unsloth.utils.attention_dispatch as _ad_mod
-        _ad_mod.flash_attn_func = _fa_func_bf16
-        if _orig_fa_var is not None and hasattr(_ad_mod, "flash_attn_varlen_func"):
-            _ad_mod.flash_attn_varlen_func = _fa_varlen_bf16
-    except Exception:
-        pass
-except ImportError:
-    pass
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -345,8 +315,8 @@ def maybe_push_to_hub(output_dir: str, repo_id: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="RLVR / Rejection-Sampling FT for CORP-ENV.")
-    parser.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
-    parser.add_argument("--adapter", default="outputs/sft_adapter",
+    parser.add_argument("--model", default="Qwen/Qwen3-14B-Instruct")
+    parser.add_argument("--adapter", default="outputs/sft_qwen3_14b",
                         help="Start from this LoRA adapter (usually SFT).")
     parser.add_argument(
         "--examples",
@@ -356,7 +326,7 @@ def main() -> None:
         "--tasks",
         default="e1_launch_readiness,m1_budget_reallocation,h1_acquisition_defence",
     )
-    parser.add_argument("--output", default="outputs/rlvr_adapter")
+    parser.add_argument("--output", default="outputs/rlvr_qwen3_14b")
     parser.add_argument("--rounds", type=int, default=3,
                         help="Outer rollout -> filter -> SFT iterations.")
     parser.add_argument("--n-samples", type=int, default=8,
@@ -396,10 +366,22 @@ def main() -> None:
         default="",
         help="Optional JSONL to append per-round rollout stats to.",
     )
+    parser.add_argument(
+        "--use-stub-workers",
+        action="store_true",
+        help="Use deterministic stub workers (default: real workers).",
+    )
+    parser.add_argument(
+        "--disable-llm-judge",
+        action="store_true",
+        help="Disable LLM judge scoring for deterministic verifier-only runs.",
+    )
     args = parser.parse_args()
 
-    os.environ.setdefault("CORP_STUB_WORKERS", "1")
-    os.environ.setdefault("CORP_DISABLE_LLM_JUDGE", "1")
+    if args.use_stub_workers:
+        os.environ["CORP_STUB_WORKERS"] = "1"
+    if args.disable_llm_judge:
+        os.environ["CORP_DISABLE_LLM_JUDGE"] = "1"
 
     random.seed(args.seed)
     torch.manual_seed(args.seed)

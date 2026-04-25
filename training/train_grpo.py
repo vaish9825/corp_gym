@@ -48,8 +48,17 @@ from typing import Any, Dict, List
 
 import torch
 
-try:
-    import flash_attn.flash_attn_interface as _fa_mod
+def _maybe_patch_flash_attn_bf16() -> None:
+    """Legacy workaround for older Unsloth/FA2 stacks.
+
+    Disabled by default; enable only if your GRPO run hits fp32 FA2 dtype errors.
+    """
+    if os.environ.get("CORP_ENABLE_FA2_BF16_PATCH", "").strip() != "1":
+        return
+    try:
+        import flash_attn.flash_attn_interface as _fa_mod
+    except ImportError:
+        return
 
     _orig_fa_func = _fa_mod.flash_attn_func
     _orig_fa_var = getattr(_fa_mod, "flash_attn_varlen_func", None)
@@ -67,16 +76,14 @@ try:
     _fa_mod.flash_attn_func = _fa_func_bf16
     if _orig_fa_var is not None:
         _fa_mod.flash_attn_varlen_func = _fa_varlen_bf16
-
     try:
         import unsloth.utils.attention_dispatch as _ad_mod
+
         _ad_mod.flash_attn_func = _fa_func_bf16
         if _orig_fa_var is not None and hasattr(_ad_mod, "flash_attn_varlen_func"):
             _ad_mod.flash_attn_varlen_func = _fa_varlen_bf16
     except Exception:
         pass
-except ImportError:
-    pass
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -343,10 +350,23 @@ def main() -> None:
         default=1,
         help="Filter training examples to traces with at least this many log_reasoning actions.",
     )
+    parser.add_argument(
+        "--use-stub-workers",
+        action="store_true",
+        help="Use deterministic stub workers (default: real workers).",
+    )
+    parser.add_argument(
+        "--disable-llm-judge",
+        action="store_true",
+        help="Disable LLM judge scoring for deterministic verifier-only runs.",
+    )
     args = parser.parse_args()
 
-    os.environ.setdefault("CORP_STUB_WORKERS", "1")
-    os.environ.setdefault("CORP_DISABLE_LLM_JUDGE", "1")
+    if args.use_stub_workers:
+        os.environ["CORP_STUB_WORKERS"] = "1"
+    if args.disable_llm_judge:
+        os.environ["CORP_DISABLE_LLM_JUDGE"] = "1"
+    _maybe_patch_flash_attn_bf16()
 
     try:
         from unsloth import FastLanguageModel, PatchFastRL
