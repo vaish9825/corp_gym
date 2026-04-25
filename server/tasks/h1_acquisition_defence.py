@@ -1,9 +1,10 @@
-"""H1 — Hostile acquisition defence (hard, contradictory intel)."""
+"""H1 - Hostile acquisition defence (hard, executive master tier)."""
 
 from __future__ import annotations
 
 from typing import Any, Dict
 
+from server.agents.personas import AgentSlot
 from server.tasks.base import CorpTask
 from server.verifiers import verify_h1
 
@@ -11,27 +12,36 @@ from server.verifiers import verify_h1
 class H1AcquisitionDefenceTask(CorpTask):
     task_id = "h1_acquisition_defence"
     description = (
-        "As CEO, a competitor offers 2.3x valuation. Reconcile contradictory advisor "
-        "views into a single strategy: counter-offer, deadline, and retention_plan. "
-        "Advance phase to execution, log multiple conflicts and typed resolutions, "
-        "and maintain a dense reasoning_log across turns."
+        "As CEO, a competitor offers 2.3x valuation. Reconcile contradictory "
+        "advisor views from the CTO, CFO, and CHRO into a single strategy: "
+        "counter_offer, deadline, and retention_plan. Advance phase through "
+        "execution, log multiple conflicts with typed resolutions, and "
+        "maintain a dense reasoning_log across turns."
     )
     role = "Chief Executive Officer"
-    available_agents = ["dev_agent", "hr_agent", "finance_agent"]
+    difficulty = "hard"
+    master_tier = "executive"
+    agent_slots = [
+        AgentSlot(id="cto", family="dev", tier="executive", title="Chief Technology Officer"),
+        AgentSlot(id="cfo", family="finance", tier="executive", title="Chief Financial Officer"),
+        AgentSlot(id="chro", family="hr", tier="executive", title="Chief People Officer"),
+    ]
     token_budget = 16384
 
     def __init__(self) -> None:
         super().__init__()
+        # Keyed by slot id so the environment can inject confidential intel
+        # directly based on who the master is calling.
         self.intel_injections = {
-            "dev_agent": (
-                "CONFIDENTIAL: Our stack is ~18 months ahead; acquirer cannot replicate quickly — "
+            "cto": (
+                "CONFIDENTIAL: Our stack is ~18 months ahead; acquirer cannot replicate quickly - "
                 "strategic ask should be ~3.5x with extended IP lock-up."
             ),
-            "finance_agent": (
+            "cfo": (
                 "CONFIDENTIAL: Cash runway ~7 months at current burn; board unlikely to approve "
-                "3.5x ask — realistic ceiling ~2.6x without new financing."
+                "3.5x ask - realistic ceiling ~2.6x without new financing."
             ),
-            "hr_agent": (
+            "chro": (
                 "CONFIDENTIAL: Key engineering talent has competing offers; ~60% retention risk "
                 "if the process drags beyond 90 days without retention incentives."
             ),
@@ -45,7 +55,7 @@ class H1AcquisitionDefenceTask(CorpTask):
             "milestones": [
                 {
                     "id": "m1",
-                    "label": "All three agent_reports present",
+                    "label": "All three agent_reports present (dev, finance, hr)",
                     "due_by_turn": 6,
                     "status": "pending",
                     "owner": "master",
@@ -53,7 +63,7 @@ class H1AcquisitionDefenceTask(CorpTask):
                 },
                 {
                     "id": "m2",
-                    "label": "≥2 conflicts_identified referencing agents",
+                    "label": ">=2 conflicts_identified referencing advisors",
                     "due_by_turn": 10,
                     "status": "pending",
                     "owner": "master",
@@ -77,7 +87,7 @@ class H1AcquisitionDefenceTask(CorpTask):
                 },
                 {
                     "id": "m5",
-                    "label": "reasoning_log ≥5 entries with distinct turn values",
+                    "label": "reasoning_log >=5 entries with distinct turn values",
                     "due_by_turn": 22,
                     "status": "pending",
                     "owner": "master",
@@ -109,7 +119,7 @@ class H1AcquisitionDefenceTask(CorpTask):
                 if not isinstance(c, dict):
                     continue
                 txt = str(c).lower()
-                if any(x in txt for x in ("dev", "hr", "finance")):
+                if any(x in txt for x in ("dev", "cto", "hr", "chro", "finance", "cfo")):
                     ok += 1
             return ok >= 2
         if milestone_id == "m3":

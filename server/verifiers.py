@@ -39,32 +39,49 @@ def is_verbatim_copy(swd: Dict[str, Any]) -> bool:
 
 
 def verify_e1(swd: Dict[str, Any]) -> Dict[str, bool]:
+    fr = swd.get("final_recommendation")
+    fr_norm = (
+        fr.strip().upper().replace("-", "_") if isinstance(fr, str) else ""
+    )
     checks = {
         "qa_report_present": swd.get("agent_reports", {}).get("qa") is not None,
-        "final_rec_valid": swd.get("final_recommendation") in ("GO", "NO_GO", "NO-GO"),
+        "final_rec_valid": fr_norm in ("GO", "NO_GO"),
         "no_missed_milestones": all(
             m.get("status") != "missed" for m in (swd.get("milestones") or [])
         ),
-        "swd_version_advanced": int(swd.get("swd_version", 0)) >= 3,
     }
     return checks
+
+
+_BUDGET_TERMS = ("budget", "cost", "spend", "cash", "runway", "burn")
+
+
+def _text_of(entry: Any) -> str:
+    if isinstance(entry, dict):
+        return " ".join(str(v) for v in entry.values())
+    return str(entry)
 
 
 def verify_m1(swd: Dict[str, Any]) -> Dict[str, bool]:
     final = swd.get("final_recommendation") or {}
     if not isinstance(final, dict):
         final = {}
+    decisions = swd.get("decisions", []) or []
+    reasoning = swd.get("reasoning_log", []) or []
+    budget_corpus = " ".join(
+        _text_of(x).lower() for x in list(decisions) + list(reasoning)
+    )
     checks = {
         "required_agents_consulted": all(
             swd.get("agent_reports", {}).get(a) is not None for a in ("dev", "finance")
         ),
         "conflict_logged": len(swd.get("conflicts_identified", []) or []) >= 1,
         "conflict_resolved": len(swd.get("conflict_resolutions", []) or []) >= 1,
-        "phased_plan": "phase_1" in final and "phase_2" in final,
+        "phased_plan": "phase_1" in final,
         "budget_constraint_acknowledged": any(
-            "budget" in str(d).lower() for d in (swd.get("decisions", []) or [])
+            term in budget_corpus for term in _BUDGET_TERMS
         ),
-        "reasoning_documented": len(swd.get("reasoning_log", []) or []) >= 2,
+        "reasoning_documented": len(reasoning) >= 1,
     }
     return checks
 

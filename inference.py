@@ -8,7 +8,6 @@ import argparse
 import json
 import os
 import re
-import textwrap
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +17,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from corp_env.models import CorpAction, CorpObservation
+from server.agents.master_prompts import build_system_prompt
 from server.environment import CorpEnvironment
 from server.llm_env import openai_client_kwargs_master
 
@@ -33,35 +33,6 @@ MAX_RETRIES = 5
 RETRY_BASE_DELAY = 2
 
 DEFAULT_TASKS = ["e1_launch_readiness", "m1_budget_reallocation", "h1_acquisition_defence"]
-
-SYSTEM_PROMPT = textwrap.dedent(
-    """\
-    You are the Master Agent in CORP-ENV. You govern a Shared Workspace Document (SWD)
-    shown in each observation. You coordinate frozen worker agents and maintain SWD
-    integrity until you call finalize.
-
-    Rules:
-    1. Respond with ONLY a valid JSON object (no markdown fences).
-    2. Include a "thought" key first (reasoning), then action fields matching CorpAction.
-    3. action_type is one of: delegate, update_swd, query_swd, finalize.
-    4. For delegate: set agent_id to one of the available_agents from the observation;
-       payload is the task description for that worker. Optional: put milestone_id in metadata.
-    5. For update_swd: payload is a JSON array (RFC 6902) of patch operations as a STRING.
-    6. For query_swd: payload is a JSONPath expression (read-only).
-    7. For finalize: payload is the final recommendation — for E1 use the string GO or NO_GO;
-       for M1/H1 use a JSON object string with required keys from the task rubric.
-    8. Use update_swd to append to decisions, conflicts_identified, conflict_resolutions,
-       reasoning_log, and to advance phase when appropriate.
-
-    JSON schema (fields besides optional metadata):
-    {
-      "thought": "string",
-      "action_type": "delegate|update_swd|query_swd|finalize",
-      "agent_id": "string or null",
-      "payload": "string"
-    }
-    """
-).strip()
 
 
 def log_start(task: str, env: str, model: str) -> None:
@@ -187,12 +158,18 @@ def parse_action(raw_text: str) -> CorpAction:
 def build_observation_message(step: int, obs: CorpObservation) -> str:
     parts = [
         f"--- Step {step} ---",
-        f"Role: {obs.role}",
+        f"Role: {obs.role}  (tier: {obs.master_tier})",
         f"Task: {obs.task_description}",
         f"Available agents: {', '.join(obs.available_agents)}",
         f"Turn: {obs.turn}  tokens_used: {obs.tokens_used}/{obs.token_budget}",
-        f"SWD:\n{json.dumps(obs.swd, indent=2)[:12000]}",
     ]
+    if obs.available_actions:
+        parts.append("Available actions:\n- " + "\n- ".join(obs.available_actions))
+    if obs.next_step_hint:
+        parts.append(f"Next-step hint: {obs.next_step_hint}")
+    if obs.recent_actions:
+        parts.append("Recent actions: " + " | ".join(obs.recent_actions))
+    parts.append(f"SWD:\n{json.dumps(obs.swd, indent=2)[:12000]}")
     if obs.agent_last_output:
         parts.append(f"Last worker output:\n{obs.agent_last_output[:4000]}")
     if obs.query_result is not None:
@@ -226,8 +203,9 @@ def run_episode(
     obs = env.reset(task_id=task_id)
     if swd_trace:
         swd_trace.write(phase="after_reset", step_index=0, action=None, obs=obs)
+    system_prompt = build_system_prompt(obs.master_tier, obs.role)
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": build_observation_message(0, obs)},
     ]
 
@@ -296,13 +274,18 @@ def deterministic_e1_smoke(swd_trace: Optional[SwdTraceWriter] = None) -> None:
     if swd_trace:
         swd_trace.write(phase="after_reset", step_index=0, action=None, obs=obs)
     seq = [
-        CorpAction(action_type="delegate", agent_id="dev_agent", payload="Assess launch readiness"),
-        CorpAction(action_type="delegate", agent_id="hr_agent", payload="Staffing sign-off"),
         CorpAction(
-            action_type="update_swd",
-            payload=json.dumps(
-                [{"op": "add", "path": "/decisions/-", "value": {"summary": "Ready with mitigations"}}]
-            ),
+            action_type="delegate",
+            agent_id="qa_engineer",
+            payload="Report current test status for the 48h launch window.",
+        ),
+        CorpAction(
+            action_type="log_reasoning",
+            payload="QA reports blockers; will align with release plan before finalizing.",
+        ),
+        CorpAction(
+            action_type="log_decision",
+            payload="Proceed with GO pending QA-flagged mitigations.",
         ),
         CorpAction(action_type="finalize", payload="GO"),
     ]

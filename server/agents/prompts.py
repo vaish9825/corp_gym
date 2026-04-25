@@ -1,59 +1,48 @@
-"""Frozen worker system prompts (same base capability, different roles)."""
+"""Worker id normalization helpers.
+
+Worker personas now live in :mod:`server.agents.personas`. This module only
+normalizes incoming ``agent_id`` strings from the master and resolves them to
+SWD ``agent_reports`` keys via the current task's slot catalog.
+"""
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Optional
 
-WORKER_PROMPTS: Dict[str, str] = {
-    "qa_agent": (
-        "You are qa_agent for a 48-hour launch gate. Be technical and concise. "
-        "Return exactly these sections: TEST_SUMMARY, PASS_FAIL_METRIC, FLAKY_TESTS, "
-        "BLOCKERS, LAUNCH_GATE. Include concrete counts where possible (e.g., passed/total, "
-        "failed, flaky). LAUNCH_GATE must be PASS or FAIL with one-line rationale."
-    ),
-    "dev_agent": (
-        "You are dev_agent negotiating GPU budget for model training. Be assertive and "
-        "hyper-focused on compute requirements. Quantify parameter count, context length, "
-        "VRAM per GPU, utilization assumptions, required GPU-hours, throughput targets, "
-        "and minimum acceptable timeline. Ask for maximum feasible budget and specify the "
-        "risk if under-provisioned."
-    ),
-    "hr_agent": (
-        "You are hr_agent: HR business partner. Answer about headcount, policy, "
-        "compliance, and staffing constraints. Plain prose."
-    ),
-    "finance_agent": (
-        "You are finance_agent: strict and risk-averse FP&A controller. Prioritize burn rate, "
-        "runway, cash preservation, and ROI confidence. Flatly reject oversized upfront GPU "
-        "requests. Provide a constrained cap, staged spending guardrails, and explicit approval "
-        "conditions tied to milestones and measurable business outcomes."
-    ),
+# Legacy aliases kept so prompts trained on the old id space still work.
+# Maps legacy family-style ids to a current task slot id when possible.
+LEGACY_ALIAS = {
+    "qa": "qa_engineer",
+    "qa_agent": "qa_engineer",
+    "dev": "dev_lead",
+    "dev_agent": "dev_lead",
+    "hr": "chro",
+    "hr_agent": "chro",
+    "finance": "fpa_manager",
+    "finance_agent": "fpa_manager",
 }
 
 
 def normalize_worker_id(agent_id: Optional[str]) -> Optional[str]:
-    """Map API ids to canonical worker keys (qa/dev/hr/finance)."""
+    """Lowercase + underscore-normalize an ``agent_id`` from master output.
+
+    Returns the normalized id, or a legacy alias if the input matches an older
+    family-style name. Returns None only if the input is None/empty. Caller is
+    responsible for checking membership against ``task.available_agents``.
+    """
     if agent_id is None:
         return None
     a = agent_id.strip().lower().replace("-", "_")
-    mapping = {
-        "qa": "qa_agent",
-        "qa_agent": "qa_agent",
-        "dev": "dev_agent",
-        "dev_agent": "dev_agent",
-        "hr": "hr_agent",
-        "hr_agent": "hr_agent",
-        "finance": "finance_agent",
-        "finance_agent": "finance_agent",
-    }
-    return mapping.get(a)
+    if not a:
+        return None
+    return LEGACY_ALIAS.get(a, a)
 
 
-def swd_report_key(canonical_agent_id: str) -> str:
-    """SWD agent_reports uses short keys qa / dev / hr / finance."""
-    return {
-        "qa_agent": "qa",
-        "dev_agent": "dev",
-        "hr_agent": "hr",
-        "finance_agent": "finance",
-    }[canonical_agent_id]
+def swd_report_key_for_family(family: str) -> str:
+    """Return the SWD ``agent_reports`` key for a worker family."""
+    family = family.strip().lower()
+    if family not in ("qa", "dev", "hr", "finance"):
+        # Strategy and other new families still need a bucket; use the family
+        # name directly and let the environment create the key on demand.
+        return family
+    return family
