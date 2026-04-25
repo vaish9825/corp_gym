@@ -10,14 +10,26 @@ Run on Colab, Lightning AI H100, or another GPU machine after SFT:
 
   python training/train_grpo.py \
     --model Qwen/Qwen2.5-7B-Instruct \
-    --adapter outputs/sft_adapter \
+    --adapter outputs/sft_Qwen2.5-7B-Instruct \
     --examples data/processed/e1_m1_clean.jsonl \
-    --output outputs/grpo_adapter \
-    --max-steps 30
+    --output outputs/grpo_Qwen2.5-7B-Instruct \
+    --max-steps 50 \
+    --push-to-hub your-org/corp-gym-grpo-qwen2.5-7b
 
 The reward function recreates the environment state from a verified action prefix,
 applies the sampled next action, and returns the real environment reward plus
 penalties for invalid JSON/actions.
+
+Optional speedups (Unsloth picks these up automatically when importable):
+
+- **Flash Attention 2** (`flash_attn`): largest win for long contexts / GRPO rollouts.
+  Install a wheel matching your **exact** `torch` and CUDA build, or compile with
+  `CUDA_HOME` pointing at the **same** CUDA version PyTorch was built for (check
+  `python -c "import torch; print(torch.version.cuda)"`). Mismatch (e.g. nvcc 13.0
+  vs torch cu128) breaks the build; fix the toolkit or use an image with FA2 preinstalled.
+- **xFormers**: already used as a fallback when FA2 is missing; still slower than FA2.
+- **Qwen3.x “linear attention” fast path**: only for those architectures; not used for
+  Qwen2.5 GRPO. See Unsloth logs if you train Qwen3.5+.
 """
 
 from __future__ import annotations
@@ -144,18 +156,39 @@ def environment_reward(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train CORP-ENV GRPO adapter.")
     parser.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
-    parser.add_argument("--adapter", default="outputs/sft_adapter")
+    parser.add_argument("--adapter", default="outputs/sft_Qwen2.5-7B-Instruct")
     parser.add_argument("--examples", default="data/processed/e1_m1_clean.jsonl")
-    parser.add_argument("--output", default="outputs/grpo_adapter")
+    parser.add_argument("--output", default="outputs/grpo_Qwen2.5-7B-Instruct")
     parser.add_argument("--tasks", default="e1_launch_readiness,m1_budget_reallocation")
-    parser.add_argument("--repeats", type=int, default=128)
+    parser.add_argument(
+        "--repeats",
+        type=int,
+        default=32,
+        help="When --examples is missing/empty, build this many synthetic oracle prefixes per task. Ignored if the JSONL yields rows.",
+    )
     parser.add_argument("--max-prompt-length", type=int, default=8192)
     parser.add_argument("--max-completion-length", type=int, default=1024)
     parser.add_argument("--lr", type=float, default=5e-6)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=8)
-    parser.add_argument("--generations", type=int, default=4)
-    parser.add_argument("--max-steps", type=int, default=150)
+    parser.add_argument(
+        "--generations",
+        type=int,
+        default=2,
+        help="GRPO samples per prompt per step. Lower = faster steps, noisier gradients (try 2 for quick runs, 4 for fuller RL).",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=50,
+        help="Optimizer steps (not env episodes). Lower finishes sooner; raise for stronger fit.",
+    )
+    parser.add_argument(
+        "--save-steps",
+        type=int,
+        default=None,
+        help="Checkpoint every N steps. Default: min(25, max(5, max_steps//2)) so short runs still save.",
+    )
     parser.add_argument("--optim", default="adamw_8bit")
     parser.add_argument("--push-to-hub", default="")
     args = parser.parse_args()
@@ -164,10 +197,10 @@ def main() -> None:
     os.environ.setdefault("CORP_DISABLE_LLM_JUDGE", "1")
 
     try:
+        from unsloth import FastLanguageModel, PatchFastRL
         from datasets import Dataset
         from peft import PeftModel
         from trl import GRPOConfig, GRPOTrainer
-        from unsloth import FastLanguageModel, PatchFastRL
     except ImportError as exc:
         raise SystemExit(
             "GRPO training requires unsloth, trl, datasets, and peft. On Lightning AI, install with:\n"
@@ -186,6 +219,15 @@ def main() -> None:
         dtype=None,
         load_in_4bit=True,
     )
+    if getattr(tokenizer, "pad_token", None) is None and getattr(
+        tokenizer, "eos_token", None
+    ) is not None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    save_steps = args.save_steps
+    if save_steps is None:
+        save_steps = min(25, max(5, args.max_steps // 2))
+
     if args.adapter:
         model = PeftModel.from_pretrained(model, args.adapter, is_trainable=True)
     else:
@@ -210,7 +252,7 @@ def main() -> None:
         max_completion_length=args.max_completion_length,
         max_steps=args.max_steps,
         logging_steps=5,
-        save_steps=25,
+        save_steps=save_steps,
         save_total_limit=3,
         optim=args.optim,
         bf16=True,
