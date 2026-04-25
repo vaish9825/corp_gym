@@ -383,33 +383,134 @@ def oracle_actions(task_id: str, variant: int = 0) -> List[Dict[str, Any]]:
             {"action_type": "finalize", "payload": json.dumps(phase)},
         ]
     if task_id == "h1_acquisition_defence":
-        final = {
-            "counter_offer": "Open at 3.2x with a board-approved walk-down floor near 2.6x.",
-            "deadline": "Force a decision inside 45 days to preserve cash runway and reduce retention risk.",
-            "retention_plan": "Offer retention grants and role clarity for critical engineering leaders.",
-        }
+        # Rotating templates: paraphrase payloads while preserving verifier invariants
+        # (3 delegates, 2 conflicts, resolution_type, decisions mentioning runway/cash/7 month,
+        # final dict keys, phase progression, dense reasoning).
+        n = 12
+        v = variant % n
+        delegates = [
+            (
+                "Assess IP leverage and technical moat.",
+                "Assess cash runway and valuation ceiling.",
+                "Assess retention risk and people constraints.",
+            ),
+            (
+                "Map product/IP defensibility and engineering dependency risk in the target.",
+                "Model valuation bands against board-approved cash and runway headroom.",
+                "Quantify people flight risk and retention levers for critical engineering staff.",
+            ),
+            (
+                "Report whether technical differentiation justifies a premium vs the 2.3x bid.",
+                "Clarify how many months of runway remain if we stretch price or drag timing.",
+                "Clarify CHRO's view on 90-day people risk and hiring-market pressure.",
+            ),
+            (
+                "Synthesize the CTO view on product moat and technical integration costs.",
+                "Synthesize the CFO view on the ceiling the board can defend with current cash.",
+                "Synthesize the CHRO view on retention, titles, and cultural integration risk.",
+            ),
+            (
+                "CTO: outline minimum acceptable tech valuation given integration complexity.",
+                "CFO: outline a pricing corridor consistent with 7 month runway and board guardrails.",
+                "CHRO: outline retention and communication needs if diligence slips past the HR window.",
+            ),
+            (
+                "CTO: stress-test whether acquirer can credibly match our roadmap without the team.",
+                "CFO: frame downside if we overpay vs observed comps and our burn profile.",
+                "CHRO: flag key engineers whose departure would void strategic upside from the deal.",
+            ),
+        ]
+        d0, d1, d2 = delegates[v % len(delegates)]
+        c1_sums = [
+            "CTO valuation ambition conflicts with CFO runway and cash constraints.",
+            "CTO's strategic premium clashes with cfo and finance on cash runway and board limits.",
+            "Engineering (cto) wants a high counter; finance (cfo) caps what cash runway allows.",
+        ]
+        c2_sums = [
+            "A slow process increases CHRO retention risk for key engineering talent.",
+            "A drawn-out haggle raises chro and hr risk as competing offers come due.",
+            "chro and cto both warn: delay past the HR window erodes the engineering team.",
+        ]
+        res_texts = [
+            "Ask above the CFO ceiling but set a fast deadline and walk-down logic.",
+            "Pursue a structured counter: higher opening ask with a board-mandated walk-down to 2.6x floor.",
+            "Use a time-boxed process: name a number above cfo’s ceiling, then step down on a defined clock.",
+        ]
+        r_before_a = [
+            "CTO input supports a higher counter because the IP moat is meaningful.",
+            "The cto case implies we should not fold to 2.3x without a premium for IP.",
+            "Dev leadership sees differentiated tech, so a weak counter cedes leverage too early.",
+        ]
+        r_after_c1 = [
+            "CFO input limits how long the negotiation can remain open.",
+            "Finance and cash runway cap how long we can posture before credibility breaks.",
+            "CFO: board cannot fund an endless auction with only about 7 month runway in reserve.",
+        ]
+        r_runway = [
+            "The 7 month runway makes delay costly and should shape the deadline.",
+            "A 7 month cash runway means every extra week in diligence burns optionality and cash.",
+            "Runway and cash pressure force a firm deadline, not an open-ended beauty contest.",
+        ]
+        r_retention = [
+            "Retention incentives are required before the market reads uncertainty.",
+            "chro: retention grants must land before the team interprets delay as a leadership stall.",
+            "hr signals that clarity on roles and comp must precede a public counter narrative.",
+        ]
+        r_final = [
+            "Final recommendation integrates valuation, deadline, and retention plan.",
+            "Synthesize cto, cfo, and chro inputs into one executable counter, timeline, and people plan.",
+            "Close the loop: a bounded counter, a calendar-driven deadline, and a retention package.",
+        ]
+        decision_line = [
+            "Proceed with a counter that acknowledges 7 month runway and cash limits.",
+            "Choose a path that fits both the 7 month cash runway and board finance constraints.",
+            "Commit: respect runway and cash reality while still pressing for a fair tech premium.",
+        ]
+        finals = [
+            {
+                "counter_offer": "Open at 3.2x with a board-approved walk-down floor near 2.6x.",
+                "deadline": "Force a decision inside 45 days to preserve cash runway and reduce retention risk.",
+                "retention_plan": "Offer retention grants and role clarity for critical engineering leaders.",
+            },
+            {
+                "counter_offer": "Start at 3.15x with a staged retreat toward 2.65x if diligence stays clean.",
+                "deadline": "Cap negotiations at 50 days: balance hr timelines with cash runway and burn.",
+                "retention_plan": "Retention bonuses plus explicit reporting lines for VPs in core product.",
+            },
+            {
+                "counter_offer": "Signal 3.25x as the opening position with board ratified walk-down rights.",
+                "deadline": "Close or exit talks within 40 days; 7 month runway does not allow drift.",
+                "retention_plan": "Two-tier retention: cash now for chro-priority staff, earn-outs for the rest.",
+            },
+            {
+                "counter_offer": "Anchor at 3.1x, allow acquirer to meet near 2.7x with accelerated diligence.",
+                "deadline": "45-day triage: align cfo cash tests with cto and chro risk windows.",
+                "retention_plan": "Milestone-based retention: pay at signing, 90d, and close for key dev talent.",
+            },
+        ]
+        final = finals[v % len(finals)]
         return [
-            {"action_type": "delegate", "agent_id": "cto", "payload": "Assess IP leverage and technical moat."},
-            {"action_type": "delegate", "agent_id": "cfo", "payload": "Assess cash runway and valuation ceiling."},
-            {"action_type": "delegate", "agent_id": "chro", "payload": "Assess retention risk and people constraints."},
-            {"action_type": "log_reasoning", "payload": "CTO input supports a higher counter because the IP moat is meaningful."},
+            {"action_type": "delegate", "agent_id": "cto", "payload": d0},
+            {"action_type": "delegate", "agent_id": "cfo", "payload": d1},
+            {"action_type": "delegate", "agent_id": "chro", "payload": d2},
+            {"action_type": "log_reasoning", "payload": r_before_a[v % len(r_before_a)]},
             {
                 "action_type": "log_conflict",
                 "payload": json.dumps(
                     {
                         "id": "c1",
-                        "summary": "CTO valuation ambition conflicts with CFO runway and cash constraints.",
+                        "summary": c1_sums[v % len(c1_sums)],
                         "source_agents": ["cto", "cfo"],
                     }
                 ),
             },
-            {"action_type": "log_reasoning", "payload": "CFO input limits how long the negotiation can remain open."},
+            {"action_type": "log_reasoning", "payload": r_after_c1[v % len(r_after_c1)]},
             {
                 "action_type": "log_conflict",
                 "payload": json.dumps(
                     {
                         "id": "c2",
-                        "summary": "A slow process increases CHRO retention risk for key engineering talent.",
+                        "summary": c2_sums[v % len(c2_sums)],
                         "source_agents": ["chro", "cto"],
                     }
                 ),
@@ -420,17 +521,17 @@ def oracle_actions(task_id: str, variant: int = 0) -> List[Dict[str, Any]]:
                     {
                         "conflict_id": "c1",
                         "resolution_type": "bounded_counter",
-                        "text": "Ask above the CFO ceiling but set a fast deadline and walk-down logic.",
+                        "text": res_texts[v % len(res_texts)],
                     }
                 ),
             },
             {"action_type": "advance_phase", "payload": "analysis"},
-            {"action_type": "log_reasoning", "payload": "The 7 month runway makes delay costly and should shape the deadline."},
+            {"action_type": "log_reasoning", "payload": r_runway[v % len(r_runway)]},
             {"action_type": "advance_phase", "payload": "decision"},
-            {"action_type": "log_decision", "payload": "Proceed with a counter that acknowledges 7 month runway and cash limits."},
-            {"action_type": "log_reasoning", "payload": "Retention incentives are required before the market reads uncertainty."},
+            {"action_type": "log_decision", "payload": decision_line[v % len(decision_line)]},
+            {"action_type": "log_reasoning", "payload": r_retention[v % len(r_retention)]},
             {"action_type": "advance_phase", "payload": "execution"},
-            {"action_type": "log_reasoning", "payload": "Final recommendation integrates valuation, deadline, and retention plan."},
+            {"action_type": "log_reasoning", "payload": r_final[v % len(r_final)]},
             {"action_type": "finalize", "payload": json.dumps(final)},
         ]
     raise ValueError(f"unknown task_id: {task_id}")

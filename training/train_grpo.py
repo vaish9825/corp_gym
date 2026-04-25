@@ -11,9 +11,9 @@ Run on Colab, Lightning AI H100, or another GPU machine after SFT:
   python training/train_grpo.py \
     --model Qwen/Qwen2.5-7B-Instruct \
     --adapter outputs/sft_Qwen2.5-7B-Instruct \
-    --examples data/processed/e1_m1_clean.jsonl \
+    --examples data/processed/e1_m1_clean.jsonl,data/processed/h1_seed_clean.jsonl \
     --output outputs/grpo_Qwen2.5-7B-Instruct \
-    --max-steps 50 \
+    --max-steps 150 \
     --push-to-hub your-org/corp-gym-grpo-qwen2.5-7b
 
 The reward function recreates the environment state from a verified action prefix,
@@ -30,6 +30,11 @@ Optional speedups (Unsloth picks these up automatically when importable):
 - **xFormers**: already used as a fallback when FA2 is missing; still slower than FA2.
 - **Qwen3.x “linear attention” fast path**: only for those architectures; not used for
   Qwen2.5 GRPO. See Unsloth logs if you train Qwen3.5+.
+
+On a Linux H100 (e.g. Lightning), try **larger** `--batch-size` if memory allows, and
+`--dataloader-num-workers 2`–`4` (Windows often keeps 0) so the `CorpEnvironment` rollouts
+are not the only bottleneck. Use `--max-steps` (default 150) and `--generations` to trade
+quality vs wall-clock.
 """
 
 from __future__ import annotations
@@ -72,12 +77,17 @@ def prompt_for_prefix(task_id: str, prefix_actions: List[Dict[str, Any]]) -> Lis
     return messages
 
 
+def _examples_paths(examples_path: str) -> List[Path]:
+    return [Path(p.strip()) for p in examples_path.split(",") if p.strip()]
+
+
 def build_prompt_dataset(examples_path: str, tasks: List[str], repeats: int) -> List[Dict[str, Any]]:
+    """Load examples from one or more JSONLs (comma-separated). Falls back to oracle prefixes if all missing/empty."""
     rows: List[Dict[str, Any]] = []
-    path = Path(examples_path)
-    if path.exists():
-        examples = list(read_jsonl(path))
-        for example in examples:
+    for path in _examples_paths(examples_path):
+        if not path.exists():
+            continue
+        for example in read_jsonl(path):
             if example.get("status") and example.get("status") != "clean":
                 continue
             task_id = str(example.get("task_id") or "")
@@ -157,9 +167,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train CORP-ENV GRPO adapter.")
     parser.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--adapter", default="outputs/sft_Qwen2.5-7B-Instruct")
-    parser.add_argument("--examples", default="data/processed/e1_m1_clean.jsonl")
+    parser.add_argument(
+        "--examples",
+        default="data/processed/e1_m1_clean.jsonl,data/processed/h1_seed_clean.jsonl",
+        help="One JSONL or comma-separated list of verified (clean) trajectory files.",
+    )
     parser.add_argument("--output", default="outputs/grpo_Qwen2.5-7B-Instruct")
-    parser.add_argument("--tasks", default="e1_launch_readiness,m1_budget_reallocation")
+    parser.add_argument(
+        "--tasks",
+        default="e1_launch_readiness,m1_budget_reallocation,h1_acquisition_defence",
+    )
     parser.add_argument(
         "--repeats",
         type=int,
@@ -180,8 +197,8 @@ def main() -> None:
     parser.add_argument(
         "--max-steps",
         type=int,
-        default=50,
-        help="Optimizer steps (not env episodes). Lower finishes sooner; raise for stronger fit.",
+        default=150,
+        help="Optimizer steps (not env episodes). Default 150 for a fuller RL fit on H100-style runs.",
     )
     parser.add_argument(
         "--save-steps",
@@ -190,6 +207,18 @@ def main() -> None:
         help="Checkpoint every N steps. Default: min(25, max(5, max_steps//2)) so short runs still save.",
     )
     parser.add_argument("--optim", default="adamw_8bit")
+    parser.add_argument(
+        "--dataloader-num-workers",
+        type=int,
+        default=0,
+        help="DataLoader workers (0 is safest on Windows; try 2–4 on Linux H100 if CPU allows).",
+    )
+    parser.add_argument(
+        "--dataloader-prefetch-factor",
+        type=int,
+        default=None,
+        help="When dataloader_num_workers>0, optional prefetch depth (e.g. 2).",
+    )
     parser.add_argument("--push-to-hub", default="")
     args = parser.parse_args()
 
@@ -242,24 +271,29 @@ def main() -> None:
             random_state=3407,
         )
 
-    config = GRPOConfig(
-        output_dir=args.output,
-        learning_rate=args.lr,
-        per_device_train_batch_size=args.batch_size,
-        gradient_accumulation_steps=args.grad_accum,
-        num_generations=args.generations,
-        max_prompt_length=args.max_prompt_length,
-        max_completion_length=args.max_completion_length,
-        max_steps=args.max_steps,
-        logging_steps=5,
-        save_steps=save_steps,
-        save_total_limit=3,
-        optim=args.optim,
-        bf16=True,
-        report_to="none",
-        push_to_hub=bool(args.push_to_hub),
-        hub_model_id=args.push_to_hub or None,
-    )
+    _gc_kwargs: Dict[str, Any] = {
+        "output_dir": args.output,
+        "learning_rate": args.lr,
+        "per_device_train_batch_size": args.batch_size,
+        "gradient_accumulation_steps": args.grad_accum,
+        "num_generations": args.generations,
+        "max_prompt_length": args.max_prompt_length,
+        "max_completion_length": args.max_completion_length,
+        "max_steps": args.max_steps,
+        "logging_steps": 5,
+        "save_steps": save_steps,
+        "save_total_limit": 3,
+        "optim": args.optim,
+        "bf16": True,
+        "report_to": "none",
+        "push_to_hub": bool(args.push_to_hub),
+        "hub_model_id": args.push_to_hub or None,
+    }
+    if args.dataloader_num_workers:
+        _gc_kwargs["dataloader_num_workers"] = args.dataloader_num_workers
+    if args.dataloader_prefetch_factor is not None and args.dataloader_num_workers:
+        _gc_kwargs["dataloader_prefetch_factor"] = args.dataloader_prefetch_factor
+    config = GRPOConfig(**_gc_kwargs)
     trainer = GRPOTrainer(
         model=model,
         processing_class=tokenizer,

@@ -32,6 +32,17 @@ class PipelineSmokeTests(unittest.TestCase):
         self.assertEqual(result.status, "clean")
         self.assertGreaterEqual(result.verifier_pass_rate, 5 / 6)
 
+    def test_oracle_h1_variants_replay_cleanly(self) -> None:
+        for v in (0, 5, 11):
+            with self.subTest(variant=v):
+                result = replay_actions(
+                    example_id=f"test-h1-{v}",
+                    task_id="h1_acquisition_defence",
+                    actions=oracle_actions("h1_acquisition_defence", v),
+                )
+                self.assertEqual(result.status, "clean")
+                self.assertGreaterEqual(result.verifier_pass_rate, 7 / 11)
+
     def test_invalid_trajectory_is_rejected(self) -> None:
         result = replay_actions(
             example_id="bad",

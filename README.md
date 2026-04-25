@@ -71,8 +71,10 @@ Replay generated examples against the current environment before training:
 
 ```powershell
 uv run python scripts/verify_examples.py --input data/raw/e1_m1_examples.jsonl --clean data/processed/e1_m1_clean.jsonl --rejected data/processed/e1_m1_rejected.jsonl
-uv run python scripts/prepare_sft_data.py --input data/processed/e1_m1_clean.jsonl --output data/sft/e1_m1_examples.jsonl
+uv run python scripts/prepare_sft_data.py
 ```
+
+`prepare_sft_data.py` defaults to merging `data/processed/e1_m1_clean.jsonl` and `data/processed/h1_seed_clean.jsonl` into `data/sft/e1_m1_h1_examples.jsonl`. To build E/M only, pass e.g. `--input data/processed/e1_m1_clean.jsonl --output data/sft/e1_m1_examples.jsonl`.
 
 Generate a small H1 seed set if needed:
 
@@ -87,9 +89,11 @@ Training scripts use **Unsloth** and **Hugging Face TRL** and are intended for a
 
 ```bash
 pip install -e ".[training]"
-python training/train_sft.py --model Qwen/Qwen2.5-7B-Instruct --data data/sft/e1_m1_examples.jsonl --output outputs/sft_adapter --max-steps 30
-python training/train_grpo.py --model Qwen/Qwen2.5-7B-Instruct --adapter outputs/sft_adapter --examples data/processed/e1_m1_clean.jsonl --output outputs/grpo_adapter --max-steps 30
+python training/train_sft.py --model Qwen/Qwen2.5-7B-Instruct --data data/sft/e1_m1_h1_examples.jsonl --output outputs/sft_adapter --max-steps 30
+python training/train_grpo.py --model Qwen/Qwen2.5-7B-Instruct --adapter outputs/sft_adapter --output outputs/grpo_adapter --max-steps 30
 ```
+
+`train_grpo.py` defaults to `--max-steps 150`, E/M/H task mix, and comma-separated `--examples` including H1 when those files exist. For a short smoke test, add e.g. `--max-steps 30`.
 
 For a judge-rerunnable notebook, use [`notebooks/corp_env_trl_unsloth_training.ipynb`](notebooks/corp_env_trl_unsloth_training.ipynb).
 
