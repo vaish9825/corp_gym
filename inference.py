@@ -25,7 +25,7 @@ load_dotenv()
 
 MASTER_KWARGS = openai_client_kwargs_master()
 MASTER_API_KEY = MASTER_KWARGS.get("api_key")
-MODEL_NAME = os.getenv("CORP_MASTER_MODEL") or os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+MODEL_NAME = os.getenv("CORP_MASTER_MODEL") or os.getenv("MODEL_NAME")
 
 BENCHMARK = "corp-env"
 MAX_HISTORY_MESSAGES = 40

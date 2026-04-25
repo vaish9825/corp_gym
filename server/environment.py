@@ -109,7 +109,9 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
         else:
             error = f"unknown action_type {action.action_type}"
 
-        self._update_milestone_status()
+        new_milestones = self._update_milestone_status()
+        step_reward += 0.2 * len(new_milestones)
+        step_reward -= 0.01
 
         if not done and self.tokens_used > self.task.token_budget:
             self.episode_metadata["token_budget_exceeded"] = True
@@ -192,9 +194,18 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
             if extra:
                 task_text = f"{task_text}\n\n{extra}".strip()
 
+        key = swd_report_key(canonical)
+        existing = self.swd.get("agent_reports", {}).get(key)
+        if existing is None:
+            reward += 0.1
+        else:
+            reward -= 0.02
+
+        if self.episode_metadata["consecutive_same_agent_calls"] > 1:
+            reward -= 0.05 * self.episode_metadata["consecutive_same_agent_calls"]
+
         out = call_worker_model(canonical, task_text or "Provide your assessment.")
         self._add_tokens(out)
-        key = swd_report_key(canonical)
         self.swd.setdefault("agent_reports", {})[key] = out
         self.swd["swd_version"] = int(self.swd.get("swd_version", 0)) + 1
         return reward, out, None
@@ -210,6 +221,10 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
             reward -= 0.15
             return reward, f"invalid JSON patch: {e}"
 
+        if not ops:
+            reward -= 0.05
+
+        old_phase = self.swd.get("phase")
         old_ver = int(self.swd.get("swd_version", 0))
         new_doc, err = try_apply_json_patch(self.swd, ops)
         if err:
@@ -217,12 +232,22 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
             reward -= 0.15
             return reward, err
 
+        if new_doc != self.swd:
+            reward += 0.05
+
+        new_phase = new_doc.get("phase")
+        if old_phase != new_phase:
+            reward += 0.1
+
         if int(new_doc.get("swd_version", 0)) < old_ver:
             self.episode_metadata["version_decreased"] = True
             reward -= 0.5
 
         self.swd = new_doc
-        reward += 0.05 * compute_swd_coherence(self.swd)
+        reward += 0.15 * compute_swd_coherence(self.swd)
+        log = self.swd.get("reasoning_log", []) or []
+        if len(log) > 0:
+            reward += 0.02
         return reward, None
 
     def _step_query_swd(self, action: CorpAction) -> Tuple[Any, Optional[str]]:
@@ -262,7 +287,8 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
         )
         return terminal, True, None
 
-    def _update_milestone_status(self) -> None:
+    def _update_milestone_status(self) -> List[str]:
+        completed_now: List[str] = []
         for m in self.swd.get("milestones", []) or []:
             mid = m.get("id")
             if not mid or m.get("status") in ("complete", "missed"):
@@ -270,8 +296,10 @@ class CorpEnvironment(Environment[CorpAction, CorpObservation, State]):
             if self.task.milestone_complete(self.swd, str(mid)):
                 m["status"] = "complete"
                 self.episode_metadata["turn_completed"][str(mid)] = self.turn
+                completed_now.append(str(mid))
             elif self.turn > int(m.get("due_by_turn", 9999)):
                 m["status"] = "missed"
+        return completed_now
 
     def _all_milestones_missed(self) -> bool:
         ms = self.swd.get("milestones", []) or []
