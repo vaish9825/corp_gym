@@ -1,8 +1,8 @@
 """Evaluate CORP-ENV policies through the real OpenEnv environment.
 
 Examples:
-  uv run python eval.py --policy scripted_weak --output results/baseline_eval.jsonl
-  uv run python eval.py --policy oracle --output results/oracle_eval.jsonl
+  uv run python eval.py --policy scripted_weak --label baseline
+  uv run python eval.py --policy oracle --label oracle
   uv run python eval.py --policy openai --model Qwen/Qwen2.5-7B-Instruct
   uv run python eval.py --policy hf --model outputs/sft_adapter --adapter outputs/grpo_adapter
 """
@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -241,6 +242,60 @@ def summarize(rows: List[Dict[str, Any]], label: str) -> None:
         )
 
 
+def slugify(value: str, fallback: str = "unknown") -> str:
+    value = (value or "").strip()
+    if not value:
+        return fallback
+    value = value.replace("\\", "/").rstrip("/")
+    value = value.split("/")[-1] if "/" in value else value
+    value = re.sub(r"[^A-Za-z0-9._-]+", "-", value)
+    value = value.strip("-._")
+    return value or fallback
+
+
+def default_output_path(args: argparse.Namespace) -> Path:
+    stage = slugify(args.label or args.policy, "eval")
+    model_slug = slugify(args.model, args.policy)
+    adapter_slug = slugify(args.adapter, "no-adapter")
+    if args.adapter:
+        run_slug = f"{model_slug}__{adapter_slug}__{stage}"
+    else:
+        run_slug = f"{model_slug}__{stage}"
+    return Path(args.results_root) / "runs" / run_slug / f"{stage}_eval.jsonl"
+
+
+def write_run_metadata(path: Path, args: argparse.Namespace, rows: List[Dict[str, Any]]) -> None:
+    by_task: Dict[str, List[Dict[str, Any]]] = {}
+    for row in rows:
+        by_task.setdefault(row["task_id"], []).append(row)
+    summary = {
+        "model_stage": args.label or args.policy,
+        "policy": args.policy,
+        "model": args.model,
+        "adapter": args.adapter,
+        "tasks": [t.strip() for t in args.tasks.split(",") if t.strip()],
+        "episodes": args.episodes,
+        "max_steps": args.max_steps,
+        "max_new_tokens": args.max_new_tokens,
+        "eval_file": str(path),
+        "metrics_by_task": {},
+    }
+    for task_id, task_rows in by_task.items():
+        summary["metrics_by_task"][task_id] = {
+            "avg_terminal_reward": round(
+                sum(r["terminal_reward"] for r in task_rows) / len(task_rows), 6
+            ),
+            "avg_verifier_pass_rate": round(
+                sum(r["verifier_pass_rate"] for r in task_rows) / len(task_rows), 6
+            ),
+            "success_rate": round(
+                sum(1 for r in task_rows if r["success"]) / len(task_rows), 6
+            ),
+        }
+    metadata_path = path.with_name("metadata.json")
+    metadata_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate CORP-ENV model stages.")
     parser.add_argument("--policy", choices=["scripted_weak", "oracle", "openai", "hf"], default="scripted_weak")
@@ -251,7 +306,12 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--max-steps", type=int, default=30)
     parser.add_argument("--max-new-tokens", type=int, default=1536)
-    parser.add_argument("--output", default="results/eval.jsonl")
+    parser.add_argument("--results-root", default="results", help="Root for auto-organized eval output.")
+    parser.add_argument(
+        "--output",
+        default="",
+        help="Explicit JSONL path. If omitted, writes under results/runs/<model-adapter-label>/.",
+    )
     args = parser.parse_args()
 
     os.environ.setdefault("CORP_STUB_WORKERS", "1")
@@ -278,14 +338,17 @@ def main() -> None:
                 row = run_model_episode(task_id=task_id, policy=policy, max_steps=max_steps)
             row["episode_index"] = ep
             row["model_stage"] = args.label or args.policy
+            row["policy"] = args.policy
             row["model"] = args.model
             row["adapter"] = args.adapter
             rows.append(row)
 
-    out = Path(args.output)
+    out = Path(args.output) if args.output else default_output_path(args)
     write_jsonl(out, rows)
+    write_run_metadata(out, args, rows)
     summarize(rows, args.label or args.policy)
     print(f"\nWrote {out}")
+    print(f"Wrote {out.with_name('metadata.json')}")
 
 
 if __name__ == "__main__":

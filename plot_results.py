@@ -1,4 +1,4 @@
-"""Create hackathon result plots from CORP-ENV eval JSONL files."""
+"""Create hackathon result plots from CORP-ENV eval JSONL files or run folders."""
 
 from __future__ import annotations
 
@@ -9,15 +9,39 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 
+def expand_inputs(inputs: Iterable[str]) -> List[Path]:
+    paths: List[Path] = []
+    for raw in inputs:
+        path = Path(raw)
+        if path.is_dir():
+            paths.extend(sorted(path.rglob("*_eval.jsonl")))
+            paths.extend(sorted(path.rglob("eval.jsonl")))
+        elif path.exists():
+            paths.append(path)
+        else:
+            matches = sorted(Path().glob(raw))
+            paths.extend([m for m in matches if m.is_file()])
+    # Preserve order but remove duplicates.
+    seen = set()
+    out: List[Path] = []
+    for path in paths:
+        key = str(path.resolve())
+        if key not in seen:
+            seen.add(key)
+            out.append(path)
+    return out
+
+
 def read_rows(paths: Iterable[str]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
-    for path_s in paths:
-        path = Path(path_s)
+    for path in expand_inputs(paths):
         with path.open("r", encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     row = json.loads(line)
                     row.setdefault("model_stage", path.stem.replace("_eval", ""))
+                    if "run_id" not in row:
+                        row["run_id"] = path.parent.name
                     steps = max(float(row.get("steps", 0) or 0), 1.0)
                     row["invalid_action_rate"] = float(row.get("invalid_action_count", 0) or 0) / steps
                     rows.append(row)
@@ -95,7 +119,7 @@ def plot_reward_curve(rows: List[Dict[str, Any]], output: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Plot CORP-ENV eval results.")
-    parser.add_argument("--inputs", nargs="+", required=True, help="Eval JSONL files.")
+    parser.add_argument("--inputs", nargs="+", required=True, help="Eval JSONL files, folders, or glob patterns.")
     parser.add_argument("--output-dir", default="results")
     args = parser.parse_args()
 

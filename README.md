@@ -100,12 +100,12 @@ See [`docs/lightning_hf_runbook.md`](docs/lightning_hf_runbook.md) for the short
 Evaluate all model stages through the same environment:
 
 ```powershell
-uv run python eval.py --policy scripted_weak --label baseline --output results/baseline_eval.jsonl
-uv run python eval.py --policy oracle --label oracle --output results/oracle_eval.jsonl
-uv run python plot_results.py --inputs results/baseline_eval.jsonl results/oracle_eval.jsonl --output-dir results
+uv run python eval.py --policy scripted_weak --label baseline
+uv run python eval.py --policy oracle --label oracle
+uv run python plot_results.py --inputs results/runs --output-dir results
 ```
 
-For trained adapters on a GPU box, use `eval.py --policy hf --model <base_model> --adapter <adapter_path>`.
+For trained adapters on a GPU box, use `eval.py --policy hf --model <base_model> --adapter <adapter_path>`. If `--output` is omitted, eval files are saved under `results/runs/<model-adapter-label>/` with a `metadata.json` summary.
 
 ## OpenEnv validation
 

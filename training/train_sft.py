@@ -57,9 +57,10 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
+        # Unsloth must load before trl/transformers/peft for full optimizations.
+        from unsloth import FastLanguageModel
         from datasets import Dataset
         from trl import SFTConfig, SFTTrainer
-        from unsloth import FastLanguageModel
     except ImportError as exc:
         raise SystemExit(
             "SFT training requires datasets, trl, and unsloth. On Lightning AI, install with:\n"
@@ -72,6 +73,11 @@ def main() -> None:
         dtype=None,
         load_in_4bit=True,
     )
+    if getattr(tokenizer, "pad_token", None) is None and getattr(
+        tokenizer, "eos_token", None
+    ) is not None:
+        tokenizer.pad_token = tokenizer.eos_token
+
     model = FastLanguageModel.get_peft_model(
         model,
         r=32,
@@ -95,7 +101,7 @@ def main() -> None:
     config = SFTConfig(
         output_dir=args.output,
         dataset_text_field="text",
-        max_seq_length=args.max_seq_length,
+        max_length=args.max_seq_length,
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         num_train_epochs=args.epochs,
