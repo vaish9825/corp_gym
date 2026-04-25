@@ -1,5 +1,6 @@
-# openenv.yaml
-name: jira-to-code
-version: 0.1.0
-description: An environment where agents resolve Jira tickets by reading, writing, and testing code.
-entrypoint: server.app:app
+spec_version: 1
+name: corp-env
+type: space
+runtime: fastapi
+app: server.app:app
+port: 7860
