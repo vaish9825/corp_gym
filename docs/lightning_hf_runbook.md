@@ -1,6 +1,6 @@
 # Lightning AI + Hugging Face Runbook
 
-This runbook is optimized for short 3-4 hour H100 windows and Hugging Face credits.
+This runbook is optimized for short 3-4 hour H100 windows and Hugging Face credits. The judge-rerunnable notebook version is [`notebooks/corp_env_trl_unsloth_training.ipynb`](../notebooks/corp_env_trl_unsloth_training.ipynb).
 
 ## 1. Prepare Artifacts Locally
 
@@ -40,10 +40,11 @@ python training/train_sft.py \
   --data data/sft/e1_m1_examples.jsonl \
   --output outputs/sft_adapter \
   --epochs 2 \
+  --max-steps 30 \
   --push-to-hub <your-user-or-org>/corp-env-sft-adapter
 ```
 
-If setup time is short, use a 7B model. If the session is stable and examples are clean, try a 14B model for the SFT demo.
+This uses Unsloth + TRL `SFTTrainer`. If setup time is short, use a 7B model. If the session is stable and examples are clean, try a 14B model for the SFT demo. Remove `--max-steps 30` or raise it for a real run.
 
 ## 4. Lightning H100 Session 2: Eval SFT
 
@@ -65,13 +66,14 @@ Push `results/*.jsonl` to Hugging Face or copy them back before the Lightning ac
 python training/train_grpo.py \
   --model Qwen/Qwen2.5-7B-Instruct \
   --adapter outputs/sft_adapter \
+  --examples data/processed/e1_m1_clean.jsonl \
   --output outputs/grpo_adapter \
   --tasks e1_launch_readiness,m1_budget_reallocation \
-  --max-steps 150 \
+  --max-steps 30 \
   --push-to-hub <your-user-or-org>/corp-env-grpo-adapter
 ```
 
-Start with E1/M1. Add H1 only after E1/M1 rewards are non-zero and invalid action rate is low.
+This uses Unsloth + TRL `GRPOTrainer` with the real CORP-ENV reward path. Start with E1/M1. Add H1 only after E1/M1 rewards are non-zero and invalid action rate is low. For a real run, increase `--max-steps` to `150` or more.
 
 ## 6. Final Eval And Plots
 

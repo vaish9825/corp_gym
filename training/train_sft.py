@@ -1,11 +1,17 @@
-"""LoRA/QLoRA SFT for CORP-ENV action-format warm start.
+"""Unsloth + Hugging Face TRL SFT for CORP-ENV action-format warm start.
 
-Run on Lightning AI H100, not on the local lightweight environment:
+This is the hackathon SFT training script. It uses:
+
+- `unsloth.FastLanguageModel` for efficient 4-bit LoRA/QLoRA loading.
+- `trl.SFTTrainer` / `trl.SFTConfig` for supervised fine-tuning.
+
+Run on Colab, Lightning AI H100, or another GPU machine:
 
   python training/train_sft.py \
     --model Qwen/Qwen2.5-7B-Instruct \
     --data data/sft/e1_m1_examples.jsonl \
     --output outputs/sft_adapter \
+    --max-steps 30 \
     --push-to-hub your-org/corp-env-sft-adapter
 """
 
@@ -44,7 +50,9 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=8)
     parser.add_argument("--lr", type=float, default=2e-4)
+    parser.add_argument("--max-steps", type=int, default=-1, help="Positive value for quick judge/Colab smoke runs.")
     parser.add_argument("--save-steps", type=int, default=50)
+    parser.add_argument("--optim", default="adamw_8bit")
     parser.add_argument("--push-to-hub", default="")
     args = parser.parse_args()
 
@@ -97,9 +105,13 @@ def main() -> None:
         logging_steps=5,
         save_steps=args.save_steps,
         save_total_limit=3,
+        max_steps=args.max_steps,
+        optim=args.optim,
         bf16=True,
         packing=False,
         report_to="none",
+        push_to_hub=bool(args.push_to_hub),
+        hub_model_id=args.push_to_hub or None,
     )
     trainer = SFTTrainer(
         model=model,
@@ -112,7 +124,7 @@ def main() -> None:
     tokenizer.save_pretrained(args.output)
 
     if args.push_to_hub:
-        trainer.push_to_hub(args.push_to_hub)
+        trainer.push_to_hub()
 
 
 if __name__ == "__main__":

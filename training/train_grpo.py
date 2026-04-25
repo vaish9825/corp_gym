@@ -1,12 +1,19 @@
-"""GRPO/RLVR training for CORP-ENV with verifier rewards.
+"""Unsloth + Hugging Face TRL GRPO/RLVR training for CORP-ENV.
 
-This script is intended for short Lightning AI H100 windows after SFT:
+This is the hackathon RL training script. It uses:
+
+- `unsloth.FastLanguageModel` for efficient 4-bit LoRA/QLoRA loading.
+- `trl.GRPOTrainer` / `trl.GRPOConfig` for RLVR-style training.
+- The actual `CorpEnvironment` verifier/reward path for reward computation.
+
+Run on Colab, Lightning AI H100, or another GPU machine after SFT:
 
   python training/train_grpo.py \
     --model Qwen/Qwen2.5-7B-Instruct \
     --adapter outputs/sft_adapter \
     --examples data/processed/e1_m1_clean.jsonl \
-    --output outputs/grpo_adapter
+    --output outputs/grpo_adapter \
+    --max-steps 30
 
 The reward function recreates the environment state from a verified action prefix,
 applies the sampled next action, and returns the real environment reward plus
@@ -149,6 +156,7 @@ def main() -> None:
     parser.add_argument("--grad-accum", type=int, default=8)
     parser.add_argument("--generations", type=int, default=4)
     parser.add_argument("--max-steps", type=int, default=150)
+    parser.add_argument("--optim", default="adamw_8bit")
     parser.add_argument("--push-to-hub", default="")
     args = parser.parse_args()
 
@@ -159,12 +167,14 @@ def main() -> None:
         from datasets import Dataset
         from peft import PeftModel
         from trl import GRPOConfig, GRPOTrainer
-        from unsloth import FastLanguageModel
+        from unsloth import FastLanguageModel, PatchFastRL
     except ImportError as exc:
         raise SystemExit(
             "GRPO training requires unsloth, trl, datasets, and peft. On Lightning AI, install with:\n"
             "  pip install -U unsloth trl datasets accelerate peft bitsandbytes transformers"
         ) from exc
+
+    PatchFastRL("GRPO", FastLanguageModel)
 
     tasks = [t.strip() for t in args.tasks.split(",") if t.strip()] or list(DEFAULT_TASKS)
     rows = build_prompt_dataset(args.examples, tasks, args.repeats)
@@ -202,8 +212,11 @@ def main() -> None:
         logging_steps=5,
         save_steps=25,
         save_total_limit=3,
+        optim=args.optim,
         bf16=True,
         report_to="none",
+        push_to_hub=bool(args.push_to_hub),
+        hub_model_id=args.push_to_hub or None,
     )
     trainer = GRPOTrainer(
         model=model,
@@ -217,7 +230,7 @@ def main() -> None:
     tokenizer.save_pretrained(args.output)
 
     if args.push_to_hub:
-        trainer.push_to_hub(args.push_to_hub)
+        trainer.push_to_hub()
 
 
 if __name__ == "__main__":

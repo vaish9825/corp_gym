@@ -83,13 +83,15 @@ uv run python scripts/verify_examples.py --input data/raw/h1_seed.jsonl --clean 
 
 ## Training
 
-Training scripts are intended for a GPU machine such as Lightning AI H100:
+Training scripts use **Unsloth** and **Hugging Face TRL** and are intended for a GPU machine such as Colab or Lightning AI H100:
 
 ```bash
 pip install -e ".[training]"
-python training/train_sft.py --model Qwen/Qwen2.5-7B-Instruct --data data/sft/e1_m1_examples.jsonl --output outputs/sft_adapter
-python training/train_grpo.py --model Qwen/Qwen2.5-7B-Instruct --adapter outputs/sft_adapter --output outputs/grpo_adapter
+python training/train_sft.py --model Qwen/Qwen2.5-7B-Instruct --data data/sft/e1_m1_examples.jsonl --output outputs/sft_adapter --max-steps 30
+python training/train_grpo.py --model Qwen/Qwen2.5-7B-Instruct --adapter outputs/sft_adapter --examples data/processed/e1_m1_clean.jsonl --output outputs/grpo_adapter --max-steps 30
 ```
+
+For a judge-rerunnable notebook, use [`notebooks/corp_env_trl_unsloth_training.ipynb`](notebooks/corp_env_trl_unsloth_training.ipynb).
 
 See [`docs/lightning_hf_runbook.md`](docs/lightning_hf_runbook.md) for the short-session H100 + Hugging Face workflow.
 
