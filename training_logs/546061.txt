@@ -1,0 +1,25 @@
+---
+pid: 117327
+cwd: "/teamspace/studios/this_studio/corp_gym"
+command: "stdbuf -oL -eL python -u eval.py --policy hf --label sft --model Qwen/Qwen2.5-7B-Instruct --adapter outputs/sft_adapter --output results/sft_eval.jsonl 2>&1 | tee results/runs/sft_eval.log"
+started_at: 2026-04-25T16:37:34.195Z
+running_for_ms: 80007    
+---
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.7.1+cu128).
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<00:40,  8.27it/s]Loading weights:   1%|          | 2/339 [00:00<00:45,  7.41it/s]Loading weights:   4%|▍         | 15/339 [00:00<00:06, 51.16it/s]Loading weights:  12%|█▏        | 41/339 [00:00<00:02, 119.89it/s]Loading weights:  19%|█▊        | 63/339 [00:00<00:01, 149.61it/s]Loading weights:  24%|██▍       | 82/339 [00:00<00:01, 161.67it/s]Loading weights:  29%|██▉       | 100/339 [00:00<00:01, 166.62it/s]Loading weights:  37%|███▋      | 124/339 [00:00<00:01, 185.77it/s]Loading weights:  42%|████▏     | 143/339 [00:01<00:01, 184.48it/s]Loading weights:  48%|████▊     | 162/339 [00:01<00:00, 178.01it/s]Loading weights:  55%|█████▍    | 185/339 [00:01<00:00, 188.91it/s]Loading weights:  61%|██████▏   | 208/339 [00:01<00:00, 197.46it/s]Loading weights:  67%|██████▋   | 228/339 [00:01<00:00, 194.64it/s]Loading weights:  73%|███████▎  | 248/339 [00:01<00:00, 187.53it/s]Loading weights:  79%|███████▉  | 267/339 [00:01<00:00, 185.38it/s]Loading weights:  86%|████████▌ | 291/339 [00:01<00:00, 197.34it/s]Loading weights:  92%|█████████▏| 311/339 [00:01<00:00, 196.89it/s]Loading weights:  98%|█████████▊| 331/339 [00:01<00:00, 187.13it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 169.60it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+
+[sft] 3 episodes
+- e1_launch_readiness: terminal_reward=0.910 pass_rate=1.000 success=1.000
+- m1_budget_reallocation: terminal_reward=0.943 pass_rate=1.000 success=1.000
+- h1_acquisition_defence: terminal_reward=0.604 pass_rate=0.583 success=0.000
+
+Wrote results/sft_eval.jsonl
+Wrote results/metadata.json
+
+---
+exit_code: 0
+elapsed_ms: 80810
+ended_at: 2026-04-25T16:38:55.005Z
+---

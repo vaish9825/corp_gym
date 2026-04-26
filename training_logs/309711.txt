@@ -1,0 +1,155 @@
+---
+pid: 108652
+cwd: "/teamspace/studios/this_studio/corp_gym"
+command: "stdbuf -oL -eL python -u training/train_sft.py \\\n  --model Qwen/Qwen2.5-7B-Instruct \\\n  --data data/sft/e1_m1_h1_examples.jsonl \\\n  --output outputs/sft_adapter \\\n  --epochs 2 \\\n  --batch-size 1 --grad-accum 8 \\\n  --max-seq-length 8192 \\\n  --dataloader-num-workers 2 \\\n  --dataset-num-proc 4 \\\n  --legacy-text \\\n  --push-to-hub Navigam/corp-env-sft-qwen2.5-7b 2>&1 | tee results/runs/sft_train.log"
+started_at: 2026-04-25T16:22:09.902Z
+running_for_ms: 795016   
+---
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+==((====))==  Unsloth 2026.4.8: Fast Qwen2 patching. Transformers: 5.5.0.
+   \\   /|    NVIDIA H100 80GB HBM3. Num GPUs = 1. Max memory: 79.189 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.7.1+cu128. CUDA: 9.0. CUDA Toolkit: 12.8. Triton: 3.3.1
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.31.post1. FA2 = True]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   1%|          | 2/339 [00:00<00:34,  9.89it/s]Loading weights:   9%|▉         | 30/339 [00:00<00:02, 121.09it/s]Loading weights:  15%|█▍        | 50/339 [00:00<00:02, 139.78it/s]Loading weights:  33%|███▎      | 112/339 [00:00<00:00, 294.58it/s]Loading weights:  51%|█████     | 172/339 [00:00<00:00, 390.50it/s]Loading weights:  68%|██████▊   | 230/339 [00:00<00:00, 447.49it/s]Loading weights:  85%|████████▍ | 288/339 [00:00<00:00, 487.96it/s]Loading weights: 100%|██████████| 339/339 [00:00<00:00, 340.05it/s]
+unsloth/qwen2.5-7b-instruct-unsloth-bnb-4bit does not have a padding token! Will use pad_token = <|PAD_TOKEN|>.
+Unsloth 2026.4.8 patched 28 layers with 28 QKV layers, 28 O layers and 28 MLP layers.
+warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+Unsloth: Tokenizing ["text"] (num_proc=4):   0%|          | 0/224 [00:00<?, ? examples/s]Unsloth: Tokenizing ["text"] (num_proc=4):  25%|██▌       | 56/224 [00:01<00:05, 28.94 examples/s]Unsloth: Tokenizing ["text"] (num_proc=4):  50%|█████     | 112/224 [00:03<00:02, 38.53 examples/s]Unsloth: Tokenizing ["text"] (num_proc=4):  75%|███████▌  | 168/224 [00:04<00:01, 41.08 examples/s]Unsloth: Tokenizing ["text"] (num_proc=4): 100%|██████████| 224/224 [00:05<00:00, 37.90 examples/s]Unsloth: Tokenizing ["text"] (num_proc=4): 100%|██████████| 224/224 [00:06<00:00, 36.82 examples/s]
+🦥 Unsloth: Padding-free auto-enabled, enabling faster training.
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None}.
+==((====))==  Unsloth - 2x faster free finetuning | Num GPUs used = 1
+   \\   /|    Num examples = 224 | Num Epochs = 2 | Total steps = 56
+O^O/ \_/ \    Batch size per device = 1 | Gradient accumulation steps = 8
+\        /    Data Parallel GPUs = 1 | Total batch size (1 x 8 x 1) = 8
+ "-____-"     Trainable parameters = 80,740,352 of 7,696,356,864 (1.05% trained)
+  0%|          | 0/56 [00:00<?, ?it/s]`use_return_dict` is deprecated! Use `return_dict` instead!
+Unsloth: Will smartly offload gradients to save VRAM!
+  2%|▏         | 1/56 [00:11<10:36, 11.57s/it]  4%|▎         | 2/56 [00:23<10:39, 11.85s/it]  5%|▌         | 3/56 [00:38<11:40, 13.21s/it]  7%|▋         | 4/56 [00:51<11:27, 13.21s/it]  9%|▉         | 5/56 [01:07<11:53, 13.99s/it]                                              {'loss': '0.6887', 'grad_norm': '0.1396', 'learning_rate': '0.0001998', 'epoch': '0.1786'}
+  9%|▉         | 5/56 [01:07<11:53, 13.99s/it] 11%|█         | 6/56 [01:25<12:48, 15.37s/it] 12%|█▎        | 7/56 [01:40<12:31, 15.34s/it] 14%|█▍        | 8/56 [01:59<13:06, 16.39s/it] 16%|█▌        | 9/56 [02:18<13:40, 17.47s/it] 18%|█▊        | 10/56 [02:33<12:45, 16.64s/it]                                               {'loss': '0.4527', 'grad_norm': '0.2434', 'learning_rate': '0.0001937', 'epoch': '0.3571'}
+ 18%|█▊        | 10/56 [02:33<12:45, 16.64s/it] 20%|█▉        | 11/56 [02:52<12:56, 17.25s/it] 21%|██▏       | 12/56 [03:07<12:18, 16.78s/it] 23%|██▎       | 13/56 [03:18<10:43, 14.96s/it] 25%|██▌       | 14/56 [03:31<10:02, 14.34s/it] 27%|██▋       | 15/56 [03:46<09:49, 14.37s/it]                                               {'loss': '0.2581', 'grad_norm': '0.1419', 'learning_rate': '0.0001795', 'epoch': '0.5357'}
+ 27%|██▋       | 15/56 [03:46<09:49, 14.37s/it] 29%|██▊       | 16/56 [03:59<09:23, 14.08s/it] 30%|███       | 17/56 [04:11<08:50, 13.60s/it] 32%|███▏      | 18/56 [04:25<08:33, 13.52s/it] 34%|███▍      | 19/56 [04:38<08:21, 13.55s/it] 36%|███▌      | 20/56 [04:52<08:07, 13.55s/it]                                               {'loss': '0.1183', 'grad_norm': '0.1291', 'learning_rate': '0.0001583', 'epoch': '0.7143'}
+ 36%|███▌      | 20/56 [04:52<08:07, 13.55s/it] 38%|███▊      | 21/56 [05:03<07:28, 12.80s/it] 39%|███▉      | 22/56 [05:14<06:51, 12.11s/it] 41%|████      | 23/56 [05:27<06:52, 12.51s/it] 43%|████▎     | 24/56 [05:41<06:55, 12.99s/it] 45%|████▍     | 25/56 [05:54<06:39, 12.90s/it]                                               {'loss': '0.05393', 'grad_norm': '0.06694', 'learning_rate': '0.000132', 'epoch': '0.8929'}
+ 45%|████▍     | 25/56 [05:54<06:39, 12.90s/it] 46%|████▋     | 26/56 [06:06<06:18, 12.61s/it] 48%|████▊     | 27/56 [06:18<05:59, 12.41s/it] 50%|█████     | 28/56 [06:31<05:55, 12.71s/it] 52%|█████▏    | 29/56 [06:44<05:41, 12.65s/it] 54%|█████▎    | 30/56 [06:58<05:40, 13.11s/it]                                               {'loss': '0.03483', 'grad_norm': '0.04528', 'learning_rate': '0.000103', 'epoch': '1.071'}
+ 54%|█████▎    | 30/56 [06:58<05:40, 13.11s/it] 55%|█████▌    | 31/56 [07:11<05:31, 13.24s/it] 57%|█████▋    | 32/56 [07:24<05:17, 13.22s/it] 59%|█████▉    | 33/56 [07:36<04:53, 12.76s/it] 61%|██████    | 34/56 [07:49<04:38, 12.67s/it] 62%|██████▎   | 35/56 [08:01<04:24, 12.61s/it]                                               {'loss': '0.03052', 'grad_norm': '0.04212', 'learning_rate': '7.364e-05', 'epoch': '1.25'}
+ 62%|██████▎   | 35/56 [08:01<04:24, 12.61s/it] 64%|██████▍   | 36/56 [08:14<04:12, 12.63s/it] 66%|██████▌   | 37/56 [08:25<03:49, 12.10s/it] 68%|██████▊   | 38/56 [08:37<03:40, 12.27s/it] 70%|██████▉   | 39/56 [08:47<03:17, 11.61s/it] 71%|███████▏  | 40/56 [09:03<03:24, 12.76s/it]                                               {'loss': '0.02921', 'grad_norm': '0.04386', 'learning_rate': '4.662e-05', 'epoch': '1.429'}
+ 71%|███████▏  | 40/56 [09:03<03:24, 12.76s/it] 73%|███████▎  | 41/56 [09:18<03:22, 13.50s/it] 75%|███████▌  | 42/56 [09:31<03:06, 13.32s/it] 77%|███████▋  | 43/56 [09:45<02:55, 13.51s/it] 79%|███████▊  | 44/56 [09:58<02:40, 13.40s/it] 80%|████████  | 45/56 [10:12<02:29, 13.62s/it]                                               {'loss': '0.0289', 'grad_norm': '0.02821', 'learning_rate': '2.425e-05', 'epoch': '1.607'}
+ 80%|████████  | 45/56 [10:12<02:29, 13.62s/it] 82%|████████▏ | 46/56 [10:23<02:07, 12.77s/it] 84%|████████▍ | 47/56 [10:35<01:52, 12.49s/it] 86%|████████▌ | 48/56 [10:47<01:38, 12.31s/it] 88%|████████▊ | 49/56 [10:58<01:24, 12.04s/it] 89%|████████▉ | 50/56 [11:12<01:16, 12.73s/it]                                               {'loss': '0.02532', 'grad_norm': '0.04659', 'learning_rate': '8.485e-06', 'epoch': '1.786'}
+ 89%|████████▉ | 50/56 [11:12<01:16, 12.73s/it]Unsloth: Restored added_tokens_decoder metadata in outputs/sft_adapter/checkpoint-50/tokenizer_config.json.
+Unsloth: Restored added_tokens_decoder metadata in outputs/sft_adapter/tokenizer_config.json.
+ 91%|█████████ | 51/56 [11:24<01:02, 12.53s/it] 93%|█████████▎| 52/56 [11:39<00:52, 13.04s/it] 95%|█████████▍| 53/56 [11:51<00:38, 12.90s/it] 96%|█████████▋| 54/56 [12:06<00:26, 13.38s/it] 98%|█████████▊| 55/56 [12:16<00:12, 12.42s/it]                                               {'loss': '0.02351', 'grad_norm': '0.03253', 'learning_rate': '7.019e-07', 'epoch': '1.964'}
+ 98%|█████████▊| 55/56 [12:16<00:12, 12.42s/it]100%|██████████| 56/56 [12:28<00:00, 12.28s/it]Unsloth: Restored added_tokens_decoder metadata in outputs/sft_adapter/checkpoint-56/tokenizer_config.json.
+                                               {'train_runtime': '749.7', 'train_samples_per_second': '0.598', 'train_steps_per_second': '0.075', 'train_loss': '0.1561', 'epoch': '2'}
+100%|██████████| 56/56 [12:29<00:00, 12.28s/it]100%|██████████| 56/56 [12:29<00:00, 13.39s/it]
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors:  84%|████████▍ |  272MB /  323MB            [A[A[A[A
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors:  84%|████████▍ |  272MB /  323MB            [A[A[A[AProcessing Files (2 / 3)      :  85%|████████▍ |  283MB /  334MB,   ???B/s  
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            [A[A[A[AProcessing Files (3 / 3)      : 100%|██████████|  334MB /  334MB,  256MB/s  
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            [A[A[A[A
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            [A[A[A[AProcessing Files (3 / 3)      : 100%|██████████|  334MB /  334MB,  128MB/s  
+New Data Upload               : |          |  0.00B /  0.00B,  0.00B/s  
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors:  82%|████████▏ |  264MB /  323MB            [A[A[A[A
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors:  82%|████████▏ |  264MB /  323MB            [A[A[A[AProcessing Files (2 / 3)      :  82%|████████▏ |  275MB /  334MB,   ???B/s  
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            [A[A[A[AProcessing Files (3 / 3)      : 100%|██████████|  334MB /  334MB,  295MB/s  
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            [A[A[A[A
+
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            [A[A
+
+
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            [A[A[A
+
+
+
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            [A[A[A[AProcessing Files (3 / 3)      : 100%|██████████|  334MB /  334MB,  148MB/s  
+New Data Upload               : |          |  0.00B /  0.00B,  0.00B/s  
+  ...adapter/training_args.bin: 100%|██████████| 5.78kB / 5.78kB            
+  ...ft_adapter/tokenizer.json: 100%|██████████| 11.4MB / 11.4MB            
+  ...adapter_model.safetensors: 100%|██████████|  323MB /  323MB            
+No files have been modified since last commit. Skipping to prevent empty commit.
+[huggingface_hub.hf_api|WARNING]No files have been modified since last commit. Skipping to prevent empty commit.
+
+---
+exit_code: 0
+elapsed_ms: 796210
+ended_at: 2026-04-25T16:35:26.112Z
+---

@@ -1,0 +1,25 @@
+---
+pid: 116258
+cwd: "/teamspace/studios/this_studio/corp_gym"
+command: "stdbuf -oL -eL python -u eval.py --policy hf --label base --model Qwen/Qwen2.5-7B-Instruct --output results/base_eval.jsonl 2>&1 | tee results/runs/base_eval.log"
+started_at: 2026-04-25T16:36:14.259Z
+running_for_ms: 60008    
+---
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.7.1+cu128).
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:01<07:05,  1.26s/it]Loading weights:   1%|          | 2/339 [00:02<06:51,  1.22s/it]Loading weights:   1%|          | 4/339 [00:02<02:47,  2.00it/s]Loading weights:   1%|▏         | 5/339 [00:02<02:09,  2.57it/s]Loading weights:   2%|▏         | 6/339 [00:02<01:44,  3.20it/s]Loading weights:   5%|▍         | 16/339 [00:03<00:23, 13.79it/s]Loading weights:   6%|▌         | 19/339 [00:03<00:24, 13.25it/s]Loading weights:   8%|▊         | 28/339 [00:03<00:14, 21.31it/s]Loading weights:   9%|▉         | 31/339 [00:03<00:17, 17.94it/s]Loading weights:  12%|█▏        | 40/339 [00:03<00:11, 25.31it/s]Loading weights:  13%|█▎        | 44/339 [00:04<00:12, 23.23it/s]Loading weights:  15%|█▌        | 52/339 [00:04<00:10, 28.47it/s]Loading weights:  17%|█▋        | 56/339 [00:04<00:11, 24.42it/s]Loading weights:  19%|█▉        | 64/339 [00:04<00:10, 25.03it/s]Loading weights:  20%|█▉        | 67/339 [00:05<00:11, 24.42it/s]Loading weights:  22%|██▏       | 76/339 [00:05<00:10, 25.57it/s]Loading weights:  23%|██▎       | 79/339 [00:05<00:10, 24.71it/s]Loading weights:  26%|██▌       | 88/339 [00:05<00:08, 30.60it/s]Loading weights:  27%|██▋       | 92/339 [00:06<00:10, 24.51it/s]Loading weights:  29%|██▉       | 100/339 [00:06<00:08, 28.03it/s]Loading weights:  30%|███       | 103/339 [00:06<00:10, 21.90it/s]Loading weights:  33%|███▎      | 112/339 [00:06<00:08, 27.67it/s]Loading weights:  34%|███▍      | 115/339 [00:07<00:10, 21.64it/s]Loading weights:  37%|███▋      | 124/339 [00:07<00:07, 27.00it/s]Loading weights:  37%|███▋      | 127/339 [00:07<00:09, 21.34it/s]Loading weights:  40%|████      | 136/339 [00:07<00:07, 27.00it/s]Loading weights:  41%|████      | 139/339 [00:08<00:09, 21.47it/s]Loading weights:  44%|████▎     | 148/339 [00:08<00:07, 27.21it/s]Loading weights:  45%|████▍     | 151/339 [00:08<00:08, 21.77it/s]Loading weights:  47%|████▋     | 160/339 [00:08<00:07, 23.62it/s]Loading weights:  48%|████▊     | 163/339 [00:08<00:07, 23.37it/s]Loading weights:  51%|█████     | 172/339 [00:09<00:05, 28.94it/s]Loading weights:  52%|█████▏    | 175/339 [00:09<00:07, 22.84it/s]Loading weights:  54%|█████▍    | 184/339 [00:09<00:06, 24.33it/s]Loading weights:  55%|█████▌    | 187/339 [00:09<00:06, 23.52it/s]Loading weights:  58%|█████▊    | 196/339 [00:10<00:04, 29.54it/s]Loading weights:  59%|█████▉    | 200/339 [00:10<00:05, 24.80it/s]Loading weights:  61%|██████▏   | 208/339 [00:10<00:04, 29.26it/s]Loading weights:  63%|██████▎   | 212/339 [00:10<00:05, 24.10it/s]Loading weights:  65%|██████▍   | 220/339 [00:11<00:04, 28.69it/s]Loading weights:  66%|██████▌   | 224/339 [00:11<00:04, 24.09it/s]Loading weights:  68%|██████▊   | 232/339 [00:11<00:03, 28.75it/s]Loading weights:  70%|██████▉   | 236/339 [00:11<00:04, 23.94it/s]Loading weights:  72%|███████▏  | 244/339 [00:11<00:03, 28.57it/s]Loading weights:  73%|███████▎  | 248/339 [00:12<00:03, 23.99it/s]Loading weights:  76%|███████▌  | 256/339 [00:12<00:02, 28.11it/s]Loading weights:  77%|███████▋  | 260/339 [00:12<00:03, 22.87it/s]Loading weights:  79%|███████▉  | 268/339 [00:12<00:02, 26.67it/s]Loading weights:  80%|███████▉  | 271/339 [00:13<00:03, 20.97it/s]Loading weights:  83%|████████▎ | 280/339 [00:13<00:02, 26.69it/s]Loading weights:  83%|████████▎ | 283/339 [00:13<00:02, 21.94it/s]Loading weights:  86%|████████▌ | 292/339 [00:13<00:01, 27.99it/s]Loading weights:  87%|████████▋ | 296/339 [00:14<00:01, 23.86it/s]Loading weights:  90%|████████▉ | 304/339 [00:14<00:01, 29.35it/s]Loading weights:  91%|█████████ | 308/339 [00:14<00:01, 25.79it/s]Loading weights:  93%|█████████▎| 316/339 [00:14<00:00, 30.37it/s]Loading weights:  94%|█████████▍| 320/339 [00:15<00:00, 24.34it/s]Loading weights:  97%|█████████▋| 328/339 [00:15<00:00, 28.64it/s]Loading weights:  98%|█████████▊| 332/339 [00:15<00:00, 23.62it/s]Loading weights: 100%|██████████| 339/339 [00:15<00:00, 21.80it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+
+[base] 3 episodes
+- e1_launch_readiness: terminal_reward=0.910 pass_rate=1.000 success=1.000
+- m1_budget_reallocation: terminal_reward=0.807 pass_rate=0.667 success=0.000
+- h1_acquisition_defence: terminal_reward=0.782 pass_rate=0.750 success=0.000
+
+Wrote results/base_eval.jsonl
+Wrote results/metadata.json
+
+---
+exit_code: 0
+elapsed_ms: 64394
+ended_at: 2026-04-25T16:37:18.653Z
+---

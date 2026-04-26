@@ -1,0 +1,26 @@
+---
+pid: 277866
+cwd: "/teamspace/studios/this_studio/corp_gym"
+command: "cd /teamspace/studios/this_studio/corp_gym && python3 eval.py --policy hf \\\n  --model Qwen/Qwen2.5-7B-Instruct \\\n  --adapter outputs/grpo_Qwen2.5-7B-Instruct \\\n  --label grpo-qwen2.5-7b 2>&1"
+started_at: 2026-04-25T14:24:41.899Z
+running_for_ms: 345001   
+---
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<00:42,  7.89it/s]Loading weights:   1%|          | 2/339 [00:00<00:49,  6.79it/s]Loading weights:   5%|▌         | 17/339 [00:00<00:05, 58.72it/s]Loading weights:  12%|█▏        | 40/339 [00:00<00:02, 112.31it/s]Loading weights:  16%|█▌        | 54/339 [00:00<00:02, 120.73it/s]Loading weights:  23%|██▎       | 77/339 [00:00<00:01, 138.51it/s]Loading weights:  30%|██▉       | 101/339 [00:00<00:01, 162.10it/s]Loading weights:  36%|███▋      | 123/339 [00:00<00:01, 172.40it/s]Loading weights:  42%|████▏     | 141/339 [00:01<00:01, 173.30it/s]Loading weights:  47%|████▋     | 161/339 [00:01<00:01, 175.61it/s]Loading weights:  54%|█████▍    | 184/339 [00:01<00:00, 175.35it/s]Loading weights:  61%|██████▏   | 208/339 [00:01<00:00, 178.23it/s]Loading weights:  68%|██████▊   | 232/339 [00:01<00:00, 188.61it/s]Loading weights:  74%|███████▍  | 251/339 [00:01<00:00, 184.98it/s]Loading weights:  80%|███████▉  | 270/339 [00:01<00:00, 174.37it/s]Loading weights:  86%|████████▋ | 293/339 [00:01<00:00, 174.37it/s]Loading weights:  94%|█████████▎| 317/339 [00:02<00:00, 175.95it/s]Loading weights: 100%|██████████| 339/339 [00:02<00:00, 159.38it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+This is a friendly reminder - the current text generation call has exceeded the model's predefined maximum length (32768). Depending on the model, you may observe exceptions, performance degradation, or nothing at all.
+
+[grpo-qwen2.5-7b] 3 episodes
+- e1_launch_readiness: terminal_reward=0.910 pass_rate=1.000 success=1.000
+- m1_budget_reallocation: terminal_reward=0.548 pass_rate=0.500 success=0.000
+- h1_acquisition_defence: terminal_reward=-0.010 pass_rate=0.417 success=0.000
+
+Wrote results/runs/Qwen2.5-7B-Instruct__grpo_Qwen2.5-7B-Instruct__grpo-qwen2.5-7b/grpo-qwen2.5-7b_eval.jsonl
+Wrote results/runs/Qwen2.5-7B-Instruct__grpo_Qwen2.5-7B-Instruct__grpo-qwen2.5-7b/metadata.json
+
+---
+exit_code: 0
+elapsed_ms: 346053
+ended_at: 2026-04-25T14:30:27.952Z
+---

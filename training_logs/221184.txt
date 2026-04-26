@@ -1,0 +1,48 @@
+---
+pid: 85217
+cwd: "/teamspace/studios/this_studio/corp_gym"
+command: "python -u eval.py --policy hf --label base-deepseek-14b --model /teamspace/studios/this_studio/.cache/huggingface/hub/models--unsloth--deepseek-r1-distill-qwen-14b-unsloth-bnb-4bit/snapshots/13ae1648fa81751417bd1701a3e670c70eaa0320 --output results/runs/deepseek_14b__base/base-deepseek-14b_eval.jsonl"
+started_at: 2026-04-26T04:12:25.855Z
+running_for_ms: 545018   
+---
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.7.1+cu128).
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/579 [00:00<?, ?it/s]Loading weights:   4%|▍         | 22/579 [00:00<00:02, 207.82it/s]Loading weights:   7%|▋         | 43/579 [00:00<00:03, 163.37it/s]Loading weights:  11%|█         | 64/579 [00:00<00:02, 172.38it/s]Loading weights:  14%|█▍        | 82/579 [00:00<00:02, 165.85it/s]Loading weights:  23%|██▎       | 134/579 [00:00<00:01, 274.89it/s]Loading weights:  32%|███▏      | 184/579 [00:00<00:01, 335.55it/s]Loading weights:  40%|████      | 233/579 [00:00<00:00, 381.80it/s]Loading weights:  49%|████▉     | 284/579 [00:00<00:00, 419.97it/s]Loading weights:  56%|█████▋    | 327/579 [00:01<00:00, 378.16it/s]Loading weights:  65%|██████▌   | 377/579 [00:01<00:00, 409.71it/s]Loading weights:  74%|███████▎  | 426/579 [00:01<00:00, 432.34it/s]Loading weights:  82%|████████▏ | 473/579 [00:01<00:00, 440.51it/s]Loading weights:  89%|████████▉ | 518/579 [00:01<00:00, 395.81it/s]Loading weights:  97%|█████████▋| 559/579 [00:01<00:00, 314.81it/s]Loading weights: 100%|██████████| 579/579 [00:01<00:00, 336.54it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=1536) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+
+[base-deepseek-14b] 3 episodes
+- e1_launch_readiness: terminal_reward=0.840 pass_rate=1.000 success=1.000
+- m1_budget_reallocation: terminal_reward=0.807 pass_rate=0.667 success=0.000
+- h1_acquisition_defence: terminal_reward=0.843 pass_rate=0.750 success=0.000
+
+Wrote results/runs/deepseek_14b__base/base-deepseek-14b_eval.jsonl
+Wrote results/runs/deepseek_14b__base/metadata.json
+
+---
+exit_code: 0
+elapsed_ms: 549166
+ended_at: 2026-04-26T04:21:35.021Z
+---
