@@ -66,13 +66,24 @@ The document is a rigorous JSON schema defining the exact state of the enterpris
 
 ## 🏆 A Reward Signal That Actually Teaches
 
-A great environment relies on a reward function that provides rich signals, not just an arbitrary 0 or 1 at the end of the tunnel. In CORP-ENV, if an agent just blindly guesses the final outcome without doing the work, it fails. The reward is meticulously designed:
+A great environment has a reward function that:
 
-- **Rich, Informative, and Composable**: We use OpenEnv's Rubric system. The reward blends Phase Transitions, Conflict Identification, Resolution Logging, and Iterative Validation. It's a composable rubric scoring far beyond monolithic `success/failure`.
-- **Captures Something Hard**: It captures *how well* the model organizes chaos. The structure of the SWD and the presence of documented reasoning phases provide dense intermediate signals.
-- **Hard to Game**: An agent attempting to exploit the reward by skipping to `finalize` gets severely penalized. If it missed milestones, didn't talk to HR, or submitted malformed JSON patches, the reward is aggressively clamped. 
+| Requirement | How CORP-ENV Delivers |
+|-------------|----------------------|
+| **Provides a rich, informative signal** | Blends Phase Transitions, Conflict Identification, Resolution Logging, and Iterative Validation rather than a 0/1 final score. |
+| **Captures something hard to measure** | Captures *how well* the model organizes chaos. The strict structure of the SWD and documented reasoning phases provide dense intermediate signals. |
+| **Uses Rubric system thoughtfully** | The reward is a composable rubric scoring far beyond a monolithic `success/failure`. We prioritize programmatic validations of corporate rigor over ambiguous LLM judges. |
+| **Is hard to game** | An agent attempting to exploit the reward by skipping directly to `finalize`, missing milestones, or submitting malformed JSON patches gets severely penalized and clamped. |
 
-We explicitly removed any reliance on ambiguous LLM judges. Our rewards are pure, programmatic validations of corporate rigor.
+### Reward Breakdown (Terminal, at `finalize`)
+
+| Component | Weight | Evaluation Method |
+| :--- | :--- | :--- |
+| **Completion** | 35% | Verifier |
+| **SWD Coherence**| 25% | Structural |
+| **Milestones** | 20% | On-time |
+| **Reasoning** | 10% | Log entries |
+| **LLM Judge** | 10% | 3 YES/NO Qs |
 
 ---
 

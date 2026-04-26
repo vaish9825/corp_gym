@@ -96,6 +96,27 @@ The SWD is a rigorous JSON schema defining the exact state of the enterprise epi
 | `m1_budget_reallocation` | Medium | Budget conflict across dev / HR / finance. |
 | `h1_acquisition_defence` | Hard | Acquisition defence with injected contradictory intel. |
 
+## 🏆 A Reward Signal That Actually Teaches
+
+A great environment has a reward function that:
+
+| Requirement | How CORP-ENV Delivers |
+|-------------|----------------------|
+| **Provides a rich, informative signal** | Blends Phase Transitions, Conflict Identification, Resolution Logging, and Iterative Validation rather than a 0/1 final score. |
+| **Captures something hard to measure** | Evaluates *how well* the model organizes chaos. The strict structure of the SWD and documented reasoning phases provide dense intermediate signals. |
+| **Uses Rubric system thoughtfully** | The final reward relies on programmatic validations of corporate rigor and is a composition of granular rubric items rather than monolithic `success/failure`. |
+| **Is hard to game** | Attempting to skip to `finalize`, missing milestones, or submitting malformed JSON patches aggressively clamps the reward for agents trying to exploit it. |
+
+### Reward Breakdown (Terminal, at `finalize`)
+
+| Component | Weight | Evaluation Method |
+| :--- | :--- | :--- |
+| **Completion** | 35% | Verifier |
+| **SWD Coherence**| 25% | Structural |
+| **Milestones** | 20% | On-time |
+| **Reasoning** | 10% | Log entries |
+| **LLM Judge** | 10% | 3 YES/NO Qs |
+
 ## Quick Start
 
 ```bash
