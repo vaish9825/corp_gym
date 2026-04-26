@@ -38,8 +38,7 @@ Our latest comprehensive evaluation highlights the leap from Base to SFT and rob
 
 ![Model Comparison](results/model_compare_qwen25_fresh_all3_ep5/model_comparison.png)
 ![Success by Task](results/model_compare_qwen25_fresh_all3_ep5/success_by_task.png)
-![Reward Curve](results/model_compare_qwen25_fresh_rlvr/reward_curve.png)
-![Invalid Action Rate](results/model_compare_qwen25_fresh_rlvr/invalid_action_rate.png)
+
 
 ## Environment Actions
 
