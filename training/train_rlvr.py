@@ -236,6 +236,7 @@ def sft_on_winners(
     epochs: float,
     max_steps: int,
     max_seq_length: int,
+    use_fp16: bool = False,
 ) -> None:
     """Run a single SFT pass over the curated (prompt, best_completion) set."""
     from datasets import Dataset
@@ -267,7 +268,8 @@ def sft_on_winners(
         "save_steps": 10_000,
         "save_total_limit": 1,
         "optim": "adamw_8bit",
-        "bf16": True,
+        "bf16": (not use_fp16) and torch.cuda.is_available(),
+        "fp16": use_fp16 and torch.cuda.is_available(),
         "report_to": "none",
         "dataset_text_field": "text",
         "push_to_hub": False,
@@ -376,6 +378,11 @@ def main() -> None:
         action="store_true",
         help="Disable LLM judge scoring for deterministic verifier-only runs.",
     )
+    parser.add_argument(
+        "--fp16",
+        action="store_true",
+        help="Use fp16 instead of bf16 (required for T4 GPUs which lack bf16 support).",
+    )
     args = parser.parse_args()
 
     if args.use_stub_workers:
@@ -405,10 +412,11 @@ def main() -> None:
     print(f"Built {len(full_rows)} prompts from {args.examples}")
 
     max_seq_len = args.max_prompt_length + args.max_completion_length
+    load_dtype = torch.float16 if args.fp16 else torch.bfloat16
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model,
         max_seq_length=max_seq_len,
-        dtype=torch.bfloat16,
+        dtype=load_dtype,
         load_in_4bit=True,
     )
     if getattr(tokenizer, "pad_token", None) is None and getattr(
@@ -438,9 +446,10 @@ def main() -> None:
             random_state=args.seed,
         )
 
+    cast_dtype = torch.float16 if args.fp16 else torch.bfloat16
     for p in model.parameters():
         if p.requires_grad and p.dtype == torch.float32:
-            p.data = p.data.to(torch.bfloat16)
+            p.data = p.data.to(cast_dtype)
 
     stats_path = Path(args.stats_file) if args.stats_file else None
     if stats_path:
@@ -490,6 +499,7 @@ def main() -> None:
             epochs=args.inner_epochs,
             max_steps=args.inner_max_steps,
             max_seq_length=max_seq_len,
+            use_fp16=args.fp16,
         )
 
     Path(args.output).mkdir(parents=True, exist_ok=True)

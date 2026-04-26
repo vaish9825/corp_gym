@@ -210,10 +210,11 @@ def main() -> None:
     if args.dataset_num_proc == 0 and "dataset_num_proc" in allowed:
         args = argparse.Namespace(**{**vars(args), "dataset_num_proc": None})
 
+    load_dtype = torch.float16 if args.fp16 else None
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model,
         max_seq_length=args.max_seq_length,
-        dtype=None,
+        dtype=load_dtype,
         load_in_4bit=True,
     )
     if getattr(tokenizer, "pad_token", None) is None and getattr(
