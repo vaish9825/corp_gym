@@ -1,0 +1,21 @@
+name: corp-env-eval-deepseek-14b-sft
+flavor: a10g-large
+env:
+  HF_HUB_ENABLE_HF_TRANSFER: "1"
+  TOKENIZERS_PARALLELISM: "false"
+  CORP_STUB_WORKERS: "1"
+  CORP_DISABLE_LLM_JUDGE: "1"
+command: >-
+  pip install -U pip &&
+  pip install -U "huggingface_hub>=0.35.0" &&
+  pip install -e ".[training,plots]" &&
+  python -u eval.py --policy scripted_weak --label baseline --episodes 3 &&
+  python -u eval.py --policy oracle --label oracle --episodes 3 &&
+  python -u eval.py
+  --policy hf
+  --label sft-deepseek-r1-14b
+  --model deepseek-ai/DeepSeek-R1-Distill-Qwen-14B
+  --adapter Navigam/deepseek-r1-distill-qwen-14b_sft
+  --episodes 3
+  --max-steps 30 &&
+  python -u plot_results.py --inputs results/runs --output-dir results/model_compare_deepseek_r1_14b

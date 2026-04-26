@@ -44,14 +44,31 @@ def _parse_target_modules(raw: str) -> List[str]:
 
 def _download_dataset_file(dataset_repo: str, dataset_file: str) -> Path:
     try:
-        from huggingface_hub import hf_hub_download
+        from huggingface_hub import HfApi, hf_hub_download
+        from huggingface_hub.errors import EntryNotFoundError, RemoteEntryNotFoundError
     except ImportError as exc:
         raise SystemExit("Please install huggingface_hub to download dataset files.") from exc
-    local = hf_hub_download(
-        repo_id=dataset_repo,
-        filename=dataset_file,
-        repo_type="dataset",
-    )
+    try:
+        local = hf_hub_download(
+            repo_id=dataset_repo,
+            filename=dataset_file,
+            repo_type="dataset",
+        )
+    except (EntryNotFoundError, RemoteEntryNotFoundError):
+        # Allow shorthand names by matching the basename inside nested dataset paths.
+        api = HfApi()
+        files = api.list_repo_files(dataset_repo, repo_type="dataset")
+        matches = [f for f in files if f.endswith("/" + dataset_file) or f == dataset_file]
+        if len(matches) != 1:
+            raise SystemExit(
+                f"Dataset file {dataset_file!r} not found uniquely in {dataset_repo}. "
+                f"Provide full path (e.g. data/...jsonl)."
+            )
+        local = hf_hub_download(
+            repo_id=dataset_repo,
+            filename=matches[0],
+            repo_type="dataset",
+        )
     return Path(local)
 
 
@@ -60,7 +77,10 @@ def main() -> None:
     parser.add_argument("--model", default="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B")
     parser.add_argument("--adapter", default="", help="Start from this LoRA adapter (usually SFT).")
     parser.add_argument("--dataset-repo", default="Navigam/corp-env-data")
-    parser.add_argument("--examples-files", default="e1_m1_clean.jsonl,h1_seed_clean.jsonl")
+    parser.add_argument(
+        "--examples-files",
+        default="data/processed/e1_m1_clean.jsonl,data/processed/h1_seed_clean.jsonl",
+    )
     parser.add_argument(
         "--tasks",
         default="e1_launch_readiness,m1_budget_reallocation,h1_acquisition_defence",

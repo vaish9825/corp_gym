@@ -9,13 +9,31 @@ license: mit
 app_port: 7860
 ---
 
-# CORP-ENV — Shared workspace governance for corporate planning agents
+# CORP-ENV — Shared Workspace Governance for Corporate Planning Agents
 
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-corp--env-blue.svg)](https://github.com/meta-pytorch/OpenEnv)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **CORP-ENV** is a reinforcement-learning environment for long-horizon **planning** in a fictional enterprise. The agent acts as a **Master** role (PM, CFO, CEO) and maintains a **Shared Workspace Document (SWD)** — a structured JSON state — while delegating to frozen **worker** models (`dev_agent`, `hr_agent`, `finance_agent`). Rewards blend deterministic task checks, SWD coherence, milestone timing, reasoning density, and an optional lightweight LLM judge.
 
-This repo replaces the earlier Jira-to-Code baseline (preserved as git tag `validated-jira-to-code-2026` on `main`) with the CORP-ENV design from `CORP_ENV_Implementation_Guide.md`.
+> 📖 **Read the full blog post**: [Blog.MD](Blog.MD) — problem statement, architecture deep-dive, training approach, and results.
+
+## Models Trained
+
+| Model | Size | SFT Script | RLVR Script | Notebook |
+|-------|------|-----------|------------|----------|
+| [Qwen 2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | 7B | `train_sft.py` | `train_rlvr.py` | [qwen2_5_7b_sft_rlvr.ipynb](notebooks/qwen2_5_7b_sft_rlvr.ipynb) |
+| [Nemotron-3-Nano-30B (NVFP4)](https://huggingface.co/unsloth/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | 30B | `train_sft_genral.py` | `train_rlvr_genral.py` | [nemotron_nano_30b_sft_rlvr.ipynb](notebooks/nemotron_nano_30b_sft_rlvr.ipynb) |
+| [DeepSeek-R1-Distill-Qwen-14B (4-bit)](https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-14B-unsloth-bnb-4bit) | 14B | `train_sft_genral.py` | `train_rlvr_genral.py` | [deepseek_r1_qwen14b_sft_rlvr.ipynb](notebooks/deepseek_r1_qwen14b_sft_rlvr.ipynb) |
+
+### Qwen 2.5-7B Results
+
+| Stage | E1 Reward | M1 Reward | H1 Reward | M1 Success |
+|-------|-----------|-----------|-----------|------------|
+| Baseline (weak) | 0.590 | 0.198 | 0.257 | 0% |
+| Base (pre-trained) | 0.910 | 0.765 | 0.810 | 0% |
+| **SFT** | **0.910** | **0.943** | **0.889** | **100%** |
+| **RLVR** | **0.910** | **0.932** | **0.779** | **80%** |
 
 ## Actions
 
@@ -41,89 +59,124 @@ This repo replaces the earlier Jira-to-Code baseline (preserved as git tag `vali
 
 Select with env var `CORP_TASK_ID` or `reset(task_id=...)` over the API.
 
-## Quick start (uv + uvicorn)
+## Quick Start
 
-```powershell
-cd corp_gym
-uv venv
-uv sync
+```bash
+# Using uv
+uv venv && uv sync
 uv run uvicorn server.app:app --host 0.0.0.0 --port 7860
-```
 
-Or:
-
-```powershell
+# Or simply
 uv run server
 ```
 
-## Baseline inference (master agent)
+## Baseline Inference
 
-Requires a **master** API key (`CORP_MASTER_API_KEY`, or `HF_TOKEN` / `OPENAI_API_KEY` as fallback). Without it, `inference.py` runs a short **deterministic E1** smoke test using stub workers. Optional **per-worker** and **judge** keys/URLs are in [`.env.example`](.env.example). Set `CORP_SWD_TRACE_FILE` or pass `--swd-trace path.jsonl` to append SWD snapshots to a file separate from console logs.
+Without an API key, `inference.py` runs a **deterministic E1 smoke test** using stub workers:
 
-```powershell
+```bash
 uv run python inference.py
 uv run python inference.py --tasks e1_launch_readiness --max-steps 25 --swd-trace logs/run.jsonl
 ```
 
-## Example verification and SFT data
-
-Replay generated examples against the current environment before training:
-
-```powershell
-uv run python scripts/run_data_pipeline.py --write-legacy-copies
-```
-
-`prepare_sft_data.py` defaults to merging `data/processed/e1_m1_clean.jsonl` and `data/processed/h1_seed_clean.jsonl` into `data/sft/e1_m1_h1_examples.jsonl`. To build E/M only, pass e.g. `--input data/processed/e1_m1_clean.jsonl --output data/sft/e1_m1_examples.jsonl`.
-
-Generate a small H1 seed set if needed:
-
-```powershell
-uv run python scripts/generate_sft_data.py --tasks h1_acquisition_defence --per-task 8 --output data/raw/h1_seed.jsonl
-uv run python scripts/verify_examples.py --input data/raw/h1_seed.jsonl --clean data/processed/h1_seed_clean.jsonl --rejected data/processed/h1_seed_rejected.jsonl
-```
+Set `CORP_MASTER_API_KEY` (or `HF_TOKEN` / `OPENAI_API_KEY`) to run the full LLM master agent. See [`.env.example`](.env.example).
 
 ## Training
 
-Training scripts use **Unsloth** and **Hugging Face TRL** and are intended for a GPU machine such as Colab or Lightning AI H100:
+### Qwen 2.5-7B Instruct (Primary)
 
 ```bash
 pip install -e ".[training]"
-python training/train_sft.py --model Qwen/Qwen2.5-7B-Instruct --data data/sft/e1_m1_h1_examples.jsonl --output outputs/sft_adapter --max-steps 30
-python training/train_rlvr.py --model Qwen/Qwen2.5-7B-Instruct --adapter outputs/sft_adapter --output outputs/rlvr_adapter --strict-json --max-prompts 128 --rounds 3
+
+# SFT
+python training/train_sft.py \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --data data/sft/e1_m1_h1_examples.jsonl \
+  --output outputs/sft_adapter --max-steps 30
+
+# RLVR
+python training/train_rlvr.py \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --adapter outputs/sft_adapter \
+  --output outputs/rlvr_adapter \
+  --strict-json --max-prompts 128 --rounds 3
 ```
 
-This repo now uses **SFT + RLVR** as the default path. GRPO scripts remain available for reference but are not part of the recommended training flow.
+### Other Models (General Scripts)
 
-For a judge-rerunnable notebook, use [`notebooks/corp_env_trl_unsloth_training.ipynb`](notebooks/corp_env_trl_unsloth_training.ipynb).
+For Nemotron-3-Nano-30B and DeepSeek-R1-Distill-Qwen-14B, use the general HF-dataset scripts:
+
+```bash
+# SFT (downloads data from HF dataset repo)
+python training/train_sft_genral.py \
+  --model unsloth/DeepSeek-R1-Distill-Qwen-14B-unsloth-bnb-4bit \
+  --dataset-repo Navigam/corp-env-data \
+  --dataset-file e1_m1_h1_examples.jsonl \
+  --output outputs/sft_deepseek_14b
+
+# RLVR
+python training/train_rlvr_genral.py \
+  --model unsloth/DeepSeek-R1-Distill-Qwen-14B-unsloth-bnb-4bit \
+  --adapter outputs/sft_deepseek_14b \
+  --dataset-repo Navigam/corp-env-data \
+  --output outputs/rlvr_deepseek_14b \
+  --rounds 3
+```
+
+## Notebooks
+
+End-to-end reproducible notebooks for each model variant:
+
+- 📓 **Qwen 2.5-7B**: [`notebooks/qwen2_5_7b_sft_rlvr.ipynb`](notebooks/qwen2_5_7b_sft_rlvr.ipynb)
+- 📓 **Nemotron-3-Nano-30B**: [`notebooks/nemotron_nano_30b_sft_rlvr.ipynb`](notebooks/nemotron_nano_30b_sft_rlvr.ipynb)
+- 📓 **DeepSeek-R1-14B**: [`notebooks/deepseek_r1_qwen14b_sft_rlvr.ipynb`](notebooks/deepseek_r1_qwen14b_sft_rlvr.ipynb)
+- 📓 **Original training notebook**: [`notebooks/corp_env_trl_unsloth_training.ipynb`](notebooks/corp_env_trl_unsloth_training.ipynb)
 
 See [`docs/lightning_hf_runbook.md`](docs/lightning_hf_runbook.md) for the short-session H100 + Hugging Face workflow.
 
-## Evaluation and plots
+## Data Preparation
 
-Evaluate all model stages through the same environment:
+```bash
+# Verify examples against CorpEnvironment
+uv run python scripts/run_data_pipeline.py --write-legacy-copies
 
-```powershell
+# Generate H1 seed data
+uv run python scripts/generate_sft_data.py --tasks h1_acquisition_defence --per-task 8 --output data/raw/h1_seed.jsonl
+uv run python scripts/verify_examples.py --input data/raw/h1_seed.jsonl --clean data/processed/h1_seed_clean.jsonl
+
+# Merge into SFT dataset
+uv run python scripts/prepare_sft_data.py
+```
+
+## Evaluation & Plots
+
+```bash
 uv run python eval.py --policy scripted_weak --label baseline
 uv run python eval.py --policy oracle --label oracle
+uv run python eval.py --policy hf --model <base_model> --adapter <adapter_path> --label sft
 uv run python plot_results.py --inputs results/runs --output-dir results
 ```
 
-For trained adapters on a GPU box, use `eval.py --policy hf --model <base_model> --adapter <adapter_path>`. If `--output` is omitted, eval files are saved under `results/runs/<model-adapter-label>/` with a `metadata.json` summary.
+## OpenEnv Validation
 
-## OpenEnv validation
-
-```powershell
+```bash
 uv run openenv validate
 ```
 
 ## Docker
 
-```powershell
+```bash
 docker build -t corp-env .
 docker run -p 7860:7860 --env-file .env.example corp-env
 ```
 
-## Python client
+Full submission validation (requires a live HF Space):
+
+```bash
+./validate-submission.sh https://your-space.hf.space
+```
+
+## Python Client
 
 `CorpEnvClient` in [`client/client.py`](client/client.py) is an `EnvClient` for WebSocket sessions against a running server.
 

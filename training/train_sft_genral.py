@@ -67,6 +67,31 @@ def load_conversation_rows(path: Path) -> List[Dict[str, Any]]:
     return rows
 
 
+def _messages_to_text(tokenizer: object, messages: List[Dict[str, Any]]) -> str:
+    if hasattr(tokenizer, "apply_chat_template"):
+        return tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=False,
+        )
+    rendered: List[str] = []
+    for msg in messages:
+        role = str(msg.get("role", "user"))
+        content = str(msg.get("content", ""))
+        rendered.append(f"{role}: {content}")
+    return "\n".join(rendered)
+
+
+def _formatting_func(tokenizer: object):
+    def _format(example: Dict[str, Any]) -> Any:
+        msgs = example.get("messages", [])
+        if msgs and isinstance(msgs[0], list):
+            return [_messages_to_text(tokenizer, m) for m in msgs]
+        return [_messages_to_text(tokenizer, msgs)]
+
+    return _format
+
+
 def _build_sft_config(
     allowed: set[str],
     output_dir: str,
@@ -119,12 +144,14 @@ def _build_trainer(
     from trl import SFTTrainer
 
     sig = inspect.signature(SFTTrainer.__init__)
+    formatting_func = _formatting_func(tokenizer)
     if "processing_class" in sig.parameters:
         return SFTTrainer(
             model=model,
             args=config,
             train_dataset=dataset,
             processing_class=tokenizer,
+            formatting_func=formatting_func,
         )
     if "tokenizer" in sig.parameters:
         return SFTTrainer(
@@ -132,6 +159,7 @@ def _build_trainer(
             args=config,
             train_dataset=dataset,
             tokenizer=tokenizer,
+            formatting_func=formatting_func,
         )
     raise SystemExit("SFTTrainer: expected processing_class or tokenizer in __init__.")
 
