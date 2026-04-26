@@ -1,0 +1,18 @@
+name: corp-env-sft-deepseek-14b
+flavor: a100-large
+env:
+  HF_HUB_ENABLE_HF_TRANSFER: "1"
+  TOKENIZERS_PARALLELISM: "false"
+command: >-
+  pip install -U pip &&
+  pip install -e .[training] &&
+  python training/train_sft_genral.py
+  --model deepseek-ai/DeepSeek-R1-Distill-Qwen-14B
+  --dataset-repo Navigam/corp-env-data
+  --dataset-file e1_m1_h1_examples.jsonl
+  --output outputs/sft_deepseek_14b
+  --hf-user Navigam
+  --epochs 2
+  --max-steps 200
+  --batch-size 1
+  --grad-accum 8

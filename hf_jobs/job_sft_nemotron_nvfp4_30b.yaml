@@ -1,0 +1,20 @@
+name: corp-env-sft-nemotron-30b-nvfp4
+flavor: h100
+env:
+  HF_HUB_ENABLE_HF_TRANSFER: "1"
+  TOKENIZERS_PARALLELISM: "false"
+command: >-
+  pip install -U pip &&
+  pip install -e .[training] &&
+  python training/train_sft_genral.py
+  --model nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4
+  --dataset-repo Navigam/corp-env-data
+  --dataset-file e1_m1_h1_examples.jsonl
+  --output outputs/sft_nemotron_30b_nvfp4
+  --hf-user Navigam
+  --max-seq-length 4096
+  --epochs 2
+  --max-steps 200
+  --batch-size 1
+  --grad-accum 16
+  --target-modules q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
