@@ -79,7 +79,7 @@ def main() -> None:
     parser.add_argument("--top-p", type=float, default=0.95)
     parser.add_argument("--reward-threshold", type=float, default=0.0)
     parser.add_argument("--max-prompts", type=int, default=0)
-    parser.add_argument("--max-prompt-length", type=int, default=2048)
+    parser.add_argument("--max-prompt-length", type=int, default=4096)
     parser.add_argument("--max-completion-length", type=int, default=512)
     parser.add_argument("--inner-lr", type=float, default=1e-4)
     parser.add_argument("--inner-epochs", type=float, default=1.0)

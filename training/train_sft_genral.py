@@ -149,7 +149,7 @@ def main() -> None:
         default="q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj",
         help="Comma-separated LoRA target module names.",
     )
-    parser.add_argument("--max-seq-length", type=int, default=2048)
+    parser.add_argument("--max-seq-length", type=int, default=4096)
     parser.add_argument("--epochs", type=float, default=2.0)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=8)
