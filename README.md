@@ -36,6 +36,11 @@ Our latest comprehensive evaluation highlights the leap from Base to SFT and rob
 | **SFT (Qwen 2.5-7B)** | **0.910** | **0.943** | **0.882** | **100%** |
 | **RLVR (Qwen 2.5-7B)** | **0.910** | **0.932** | **0.779** | **80%** |
 
+![Model Comparison](results/model_compare_qwen25_fresh_all3_ep5/model_comparison.png)
+![Success by Task](results/model_compare_qwen25_fresh_all3_ep5/success_by_task.png)
+![Reward Curve](results/model_compare_qwen25_fresh_rlvr/reward_curve.png)
+![Invalid Action Rate](results/model_compare_qwen25_fresh_rlvr/invalid_action_rate.png)
+
 ## Environment Actions
 
 | Action | Meaning |

@@ -1,6 +1,5 @@
-# CORP-ENV: Beautifully Messy, Authentically Corporate
+# CORP-ENV: Shared Workspace Governance for Corporate Planning Agents
 
-> *A messy but ambitious environment with real training evidence beats a polished but boring one.*
 
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-corp--env-blue.svg)](https://github.com/meta-pytorch/OpenEnv)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,13 +8,9 @@
 
 ## 🎯 The Story: Why We Built the Enterprise Mess
 
-Frontier models fail spectacularly at one specific thing: **long-horizon corporate planning**. As highlighted by [ServiceNow Research's EnterpriseOps-Gym](https://enterpriseops-gym.github.io/) (detailed in this [MarkTechPost article](https://www.marktechpost.com/2026/03/18/servicenow-research-introduces-enterpriseops-gym-a-high-fidelity-benchmark-designed-to-evaluate-agentic-planning-in-realistic-enterprise-settings/)), even the best LLMs struggle in realistic enterprise settings. Their evaluation of 14 frontier models reveals critical limitations: the top-performing **Claude Opus 4.5** achieves only **37.4% success**. Furthermore, agents frequently fail to refuse infeasible tasks (best model achieves only 53.9%), leading to unintended and potentially harmful side effects. Providing oracle human plans improves performance by 14–35 percentage points, pinpointing strategic reasoning as the primary bottleneck. Current agents are simply not yet ready for autonomous enterprise deployment. 
+Frontier models excel at coding but fail spectacularly at **long-horizon corporate planning**. As highlighted by [ServiceNow's EnterpriseOps-Gym](https://enterpriseops-gym.github.io/), top models hit only ~37% success in enterprise settings. Throw an LLM into a multi-department dispute over budgets and headcount, and it structurally collapses—losing state and finalizing prematurely. 
 
-Give an LLM a coding task, and it shines. Throw it into a multi-phase corporate dispute where HR wants headcount, Dev wants server budget, and Finance holds the purse strings, and the model structurally collapses. It loses track of state, forgets who said what, and finalises early with a fake 0/1 conclusion.
-
-There was no environment demanding that agents maintain a running, structured state of complex, messy, contradictory human dynamics. **Until CORP-ENV.** 
-
-We chose an ambitious environment over a polished, boring one. We created an environment that an LLM can actually be trained on to measurably improve, relying on rigid deterministic state tracking rather than flaky vibes. 
+Current agents lack the strategic reasoning necessary for autonomous deployment. Until CORP-ENV, there was no environment demanding that agents maintain a structured state of complex, contradictory human dynamics. We built an ambitious, deterministic environment where models can be meaningfully trained to untangle the corporate mess, moving beyond flaky vibes to rigorous state tracking. 
 
 ---
 
@@ -61,7 +56,7 @@ The document is a rigorous JSON schema defining the exact state of the enterpris
 }
 ```
 
-### The Messy Reality of Corporate Planning:
+### The Reality of Corporate Planning:
 - The agent must **delegate** to worker stubs (`dev_agent`, `hr_agent`, `finance_agent`).
 - It has to parse their conflicting reports.
 - It must **log conflicts** and structure its **reasoning** within the SWD.
@@ -95,6 +90,17 @@ Here are the observable, before-and-after results illustrating massive agent imp
 | Base (Qwen 2.5-7B) | 0.910 | 0.707 | 0.761 | 0% |
 | **SFT** | **0.910** | **0.943** | **0.882** | **100%** |
 | **RLVR** | **0.910** | **0.932** | **0.779** | **80%** |
+
+![Model Comparison](results/model_compare_qwen25_fresh_rlvr/model_comparison.png)
+![Success by Task](results/model_compare_qwen25_fresh_rlvr/success_by_task.png)
+
+### Why RLVR Beats GRPO: The Power of Verifiable Rewards
+During our training loop iterations, we found that traditional GRPO fundamentally struggles with sparse, multi-step constraints. Because most intermediate rollouts in complex corporate trajectories receive extreme penalties for missing milestones or creating invalid SWD schemas, they exhibit zero reward variance inside the batch. This means GRPO's advantage estimations collapse—it cannot learn a useful gradient from a batch of uniformly failed trajectories.
+
+By using RLVR (Rejection-Sampling Fine-Tuning) backed by strict verifiable rewards, we only update the model on completions that actually achieve a non-zero, robustly validated state. This method drops the noise and guarantees that verifiable progress dictates model weight updates.
+
+![Reward Curve](results/model_compare_qwen25_fresh_all3_ep5/reward_curve.png)
+![Invalid Action Rate](results/model_compare_qwen25_fresh_all3_ep5/invalid_action_rate.png)
 
 ### Before Training: The Clueless Executive
 Untrained models panic. They invoke `delegate` once, maybe twice, skip logging the conflicts, and instantly `finalize`. Result? A pathetic **0% success rate on the M1 Budget Reallocation task**. 
