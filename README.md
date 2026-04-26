@@ -16,7 +16,7 @@ app_port: 7860
 
 **CORP-ENV** is a highly ambitious yet realistic reinforcement-learning environment designed for long-horizon **planning** in an enterprise. The agent steps into a **Master** role (PM, CFO, CEO) and maintains a **Shared Workspace Document (SWD)** : a structured JSON state while delegating tasks to heavily specialized frozen **worker** models (`dev_agent`, `hr_agent`, `finance_agent`). The environment boasts a rich, composable reward signal that is intentionally hard to game.
 
-> 📖 **Read our story**: The [Blog.MD](Blog.MD) dives deep into our philosophy
+> 📖 **Read our story**: The [Blog.MD](Blog.MD) dives deep into our philosophy. Watch it on [YouTube](https://youtube.com/playlist?list=PLmsy0aB2ZNIpq0_yd9O0ihMAA2rsiLI9v&si=6IqiP_nl0K4_eEvQ).
 
 ## Training & Models
 
