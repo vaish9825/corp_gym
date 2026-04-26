@@ -1,6 +1,6 @@
 ---
 title: CORP-ENV
-emoji: briefcase
+emoji: 💼
 colorFrom: gray
 colorTo: blue
 sdk: docker
