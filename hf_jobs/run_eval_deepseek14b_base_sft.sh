@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-echo "Submitting DeepSeek 14B SFT Eval job..."
+echo "Submitting DeepSeek 14B base vs SFT eval job..."
 GIT_REF="${GIT_REF:-main}"
 
 hf jobs run --namespace Navigam --flavor a10g-large --secrets HF_TOKEN \
@@ -11,7 +11,7 @@ hf jobs run --namespace Navigam --flavor a10g-large --secrets HF_TOKEN \
   --env CORP_DISABLE_LLM_JUDGE=1 \
   huggingface/trl -- sh -c '
     apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/* &&
-    git clone --branch main https://github.com/Navigam1108/corp_gym.git /workspace/corp_gym &&
+    git clone --branch '"${GIT_REF}"' https://github.com/Navigam1108/corp_gym.git /workspace/corp_gym &&
     cd /workspace/corp_gym &&
     pip install -U pip &&
     pip install -e ".[plots]" &&

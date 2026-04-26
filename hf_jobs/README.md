@@ -38,6 +38,7 @@ Run individual scripts:
 ```bash
 bash hf_jobs/run_sft_deepseek14b.sh
 bash hf_jobs/run_rlvr_deepseek14b.sh
+bash hf_jobs/run_eval_deepseek14b_base_sft.sh
 bash hf_jobs/run_sft_nemotron_nvfp4_30b.sh
 ```
 
@@ -46,5 +47,6 @@ Or launch with YAML specs:
 ```bash
 hf jobs run hf_jobs/job_sft_deepseek14b.yaml
 hf jobs run hf_jobs/job_rlvr_deepseek14b.yaml
+hf jobs run hf_jobs/job_eval_deepseek14b_base_sft.yaml
 hf jobs run hf_jobs/job_sft_nemotron_nvfp4_30b.yaml
 ```

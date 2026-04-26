@@ -77,28 +77,41 @@ class HFPolicy:
     def __init__(self, model: str, adapter: Optional[str], max_new_tokens: int) -> None:
         try:
             import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer
             from peft import PeftModel
-            from unsloth import FastLanguageModel
         except ImportError as exc:
             raise SystemExit(
-                "HF evaluation requires torch, unsloth, and peft. "
-                "Install the training extras on the GPU machine."
+                "HF evaluation requires torch, transformers, and peft. "
+                "Install eval dependencies on the GPU machine."
             ) from exc
 
         self.torch = torch
-        self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name=model,
-            max_seq_length=4096,
-            dtype=None,
-            load_in_4bit=True,
-        )
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         if getattr(self.tokenizer, "pad_token", None) is None and getattr(self.tokenizer, "eos_token", None) is not None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        
+
+        model_kwargs: Dict[str, Any] = {
+            "trust_remote_code": True,
+            "device_map": "auto",
+        }
+        # Prefer 4-bit loading on single-GPU eval boxes.
+        try:
+            from transformers import BitsAndBytesConfig
+
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            )
+        except Exception:
+            model_kwargs["torch_dtype"] = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+
+        self.model = AutoModelForCausalLM.from_pretrained(model, **model_kwargs)
         if adapter:
             self.model = PeftModel.from_pretrained(self.model, adapter)
-            
-        FastLanguageModel.for_inference(self.model)
+
+        self.model.eval()
         self.max_new_tokens = max_new_tokens
 
     def complete(self, messages: List[Dict[str, str]]) -> str:
