@@ -102,6 +102,12 @@ By using RLVR (Rejection-Sampling Fine-Tuning) backed by strict verifiable rewar
 ![Reward Curve](results/model_compare_qwen25_fresh_all3_ep5/reward_curve.png)
 ![Invalid Action Rate](results/model_compare_qwen25_fresh_all3_ep5/invalid_action_rate.png)
 
+### SFT Loss Comparison
+
+![SFT Loss Comparison](results/qwen_sft_comparison.png)
+
+Both Qwen 2.5-7B and Qwen 3.5-9B show rapid, stable convergence curves during the Supervised Fine-Tuning phase, efficiently mastering the core instruction formatting before RLVR kicks in.
+
 ### Before Training: The Clueless Executive
 Untrained models panic. They invoke `delegate` once, maybe twice, skip logging the conflicts, and instantly `finalize`. Result? A pathetic **0% success rate on the M1 Budget Reallocation task**. 
 
